@@ -5,12 +5,13 @@
 
 
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent),
-ui(new Ui::MainWindow),
-mRenderWindow(vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New()),
-mRenderer(vtkSmartPointer<vtkRenderer>::New()),
-mInteractor(vtkSmartPointer<QVTKInteractor>::New()),
-mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // Use vtkInteractorStyleTrackballCamera for interaction
+MainWindow::MainWindow(QWidget* parent) :
+	QMainWindow(parent),
+	ui(new Ui::MainWindow),
+	mRenderWindow(vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New()),
+	mRenderer(vtkSmartPointer<vtkRenderer>::New()),
+	mInteractor(vtkSmartPointer<QVTKInteractor>::New()),
+	mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // Use vtkInteractorStyleTrackballCamera for interaction
 {
 	ui->setupUi(this);
 	showMaximized();
@@ -20,56 +21,56 @@ mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // U
 	QPixmap scaled = p.scaled(q, Qt::KeepAspectRatio);
 	ui->icon->setIcon(QIcon(scaled));
 	ui->icon->setIconSize(q);*/
-	
-	
+
+
 	//connect(ui->openBtn, SIGNAL(clicked()), this, SLOT(openDicomBtn()));
-    //connect(ui->saveBtn, SIGNAL(clicked()), this, SLOT(saveBtn()));
+	//connect(ui->saveBtn, SIGNAL(clicked()), this, SLOT(saveBtn()));
 	// Signal-Slot connections for UI buttons
 	connect(ui->createSTL, &QPushButton::clicked, this, &MainWindow::startConvProcess);
 	connect(ui->exportSTL, &QPushButton::clicked, this, &MainWindow::startExportProcess);
 
 
-    connect(this, &MainWindow::doUpdateProgress, this, &MainWindow::updateProgress);
+	connect(this, &MainWindow::doUpdateProgress, this, &MainWindow::updateProgress);
 
 
 
-    m_converter = new DicomConverter(this);
-    m_converter->moveToThread(&m_conversionThread);
-    connect(&m_conversionThread, &QThread::finished, m_converter, &QObject::deleteLater);
-	
+	m_converter = new DicomConverter(this);
+	m_converter->moveToThread(&m_conversionThread);
+	connect(&m_conversionThread, &QThread::finished, m_converter, &QObject::deleteLater);
+
 	connect(this, &MainWindow::doLoad, m_converter, &DicomConverter::loadDicomImage);
-    connect(m_converter, &DicomConverter::loadDicomImage_Done, this, &MainWindow::load_done);
+	connect(m_converter, &DicomConverter::loadDicomImage_Done, this, &MainWindow::load_done);
 
 
-    connect(this, &MainWindow::doCenter, m_converter, &DicomConverter::centerMesh);
-    connect(m_converter, &DicomConverter::centerMesh_Done, this, &MainWindow::center_done);
+	connect(this, &MainWindow::doCenter, m_converter, &DicomConverter::centerMesh);
+	connect(m_converter, &DicomConverter::centerMesh_Done, this, &MainWindow::center_done);
 
-    connect(this, &MainWindow::doReduction, m_converter, &DicomConverter::reduction);
-    connect(m_converter, &DicomConverter::reduction_Done, this, &MainWindow::reduction_done);
+	connect(this, &MainWindow::doReduction, m_converter, &DicomConverter::reduction);
+	connect(m_converter, &DicomConverter::reduction_Done, this, &MainWindow::reduction_done);
 
-    connect(this, &MainWindow::doFilter, m_converter, &DicomConverter::filtering);
-    connect(m_converter, &DicomConverter::filtering_Done, this, &MainWindow::filter_done);
+	connect(this, &MainWindow::doFilter, m_converter, &DicomConverter::filtering);
+	connect(m_converter, &DicomConverter::filtering_Done, this, &MainWindow::filter_done);
 
-//    connect(this, &MainWindow::doSmoothing, m_converter, &DicomConverter::smoothing);
-//    connect(m_converter, &DicomConverter::smoothing_Done, this, &MainWindow::smoothing_done);
+	//    connect(this, &MainWindow::doSmoothing, m_converter, &DicomConverter::smoothing);
+	//    connect(m_converter, &DicomConverter::smoothing_Done, this, &MainWindow::smoothing_done);
 
 
-//	  connect(this, &MainWindow::doExport, m_converter, &DicomConverter::exportMesh);
-//    connect(m_converter, &DicomConverter::export_Done, this, &MainWindow::export_done);
+	//	  connect(this, &MainWindow::doExport, m_converter, &DicomConverter::exportMesh);
+	//    connect(m_converter, &DicomConverter::export_Done, this, &MainWindow::export_done);
 
 
 	connect(this, &MainWindow::doSmoothing, m_converter, &DicomConverter::smoothing);
-    connect(m_converter, &DicomConverter::smoothing_Done, this, &MainWindow::smoothing_done);
+	connect(m_converter, &DicomConverter::smoothing_Done, this, &MainWindow::smoothing_done);
 
-	
+
 
 	connect(this, &MainWindow::doExport, m_converter, &DicomConverter::exportMesh);
 	connect(m_converter, &DicomConverter::export_Done, this, &MainWindow::export_done);
 
 	m_conversionThread.start();
 
-    m_mesh_path = "";
-    m_dicom_path = "";
+	m_mesh_path = "";
+	m_dicom_path = "";
 
 
 
@@ -80,14 +81,13 @@ mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // U
 	mInteractor->Initialize();
 	// Set the background color 
 
-	mRenderer->SetBackground(0,0,0);
+	mRenderer->SetBackground(0, 0, 0);
 
-	
+
 	QObject::connect(ui->importDICOM, &QPushButton::clicked, this, &MainWindow::on_importDICOMButton_clicked);
 	QObject::connect(ui->STL, &QPushButton::clicked, this, &MainWindow::show_loaded_stl);
 	QObject::connect(ui->DICOM, &QPushButton::clicked, this, &MainWindow::show_loaded_dicom);
 
-//	QObject::connect(ui->nerve, &QPushButton::clicked, this, &MainWindow::exportSTLFile);
 
 	ui->progressBar->setHidden(true);
 
@@ -95,11 +95,11 @@ mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // U
 
 
 
-MainWindow::~MainWindow() 
-{	
+MainWindow::~MainWindow()
+{
 	delete ui;
-    m_conversionThread.quit();
-    m_conversionThread.wait();
+	m_conversionThread.quit();
+	m_conversionThread.wait();
 
 }
 
@@ -107,54 +107,54 @@ MainWindow::~MainWindow()
 void MainWindow::handleStartConversion()
 {
 	ui->progressBar->setHidden(false);
-//    ui->runBtn->setEnabled(false);
+	//    ui->runBtn->setEnabled(false);
 }
 
 void MainWindow::handleEndConversion()
 {
 	ui->progressBar->setHidden(true);
-//    ui->runBtn->setEnabled(true);
+	//    ui->runBtn->setEnabled(true);
 }
 
 // choose path to dicom
 void MainWindow::openDicomBtn()
 {
-    QString dicomPath = QFileDialog::getExistingDirectory(this, "Choose DICOM directory", ".", QFileDialog::ShowDirsOnly);
-    if(!dicomPath.isEmpty())
-    {
-        QString newInLablePath = "Input: ";
-        newInLablePath.append(dicomPath);
-//        ui->inLable->setText(newInLablePath);
+	QString dicomPath = QFileDialog::getExistingDirectory(this, "Choose DICOM directory", ".", QFileDialog::ShowDirsOnly);
+	if (!dicomPath.isEmpty())
+	{
+		QString newInLablePath = "Input: ";
+		newInLablePath.append(dicomPath);
+		//        ui->inLable->setText(newInLablePath);
 
-        m_dicom_path = dicomPath;
-    }
+		m_dicom_path = dicomPath;
+	}
 }
 
 // choose mesh path
 void MainWindow::saveBtn()
 {
-    QString savePath = QFileDialog::getSaveFileName(this, "Save mesh as", ".");
-    if(!savePath.isEmpty())
-    {
-        QString newOutLable = "Output: ";
-        newOutLable.append(savePath);
-//        ui->outLable->setText(newOutLable);
+	QString savePath = QFileDialog::getSaveFileName(this, "Save mesh as", ".");
+	if (!savePath.isEmpty())
+	{
+		QString newOutLable = "Output: ";
+		newOutLable.append(savePath);
+		//        ui->outLable->setText(newOutLable);
 
-        m_mesh_path = savePath;
-    }
+		m_mesh_path = savePath;
+	}
 }
 
 //// start conversion -> a cascade of functions will be asynchronous called
 void MainWindow::startConvProcess()
 {
-    handleStartConversion();
-//	m_dicom_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/dicom_example";
-//	m_dicom_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/MULTIFRAME";
-//	m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/output.stl";
+	handleStartConversion();
+	//	m_dicom_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/dicom_example";
+	//	m_dicom_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/MULTIFRAME";
+	//	m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/output.stl";
 
-    // Read Dicom images
-    ui->infoLable->setText("Read DICOM images");
-//    emit doLoad( m_dicom_path, ui->thresholdSpinBox->value());
+		// Read Dicom images
+	ui->infoLable->setText("Read DICOM images");
+	//    emit doLoad( m_dicom_path, ui->thresholdSpinBox->value());
 	emit doLoad(m_dicom_path, 400);
 
 	// after dicom images loaded, slot load_done is called
@@ -169,7 +169,7 @@ void MainWindow::load_dicom()
 {
 	handleStartConversion();
 
-		// Read Dicom images
+	// Read Dicom images
 	ui->infoLable->setText("Read DICOM images");
 	//    emit doLoad( m_dicom_path, ui->thresholdSpinBox->value());
 	emit doLoad(m_dicom_path, 400);
@@ -182,31 +182,31 @@ void MainWindow::load_dicom()
 void MainWindow::load_done(bool ok)
 {
 
-	qDebug() << "-----------------------------------> load_done is Called() P: "<< ok;
+	qDebug() << "-----------------------------------> load_done is Called() P: " << ok;
 
-    if( ok )
-    {
+	if (ok)
+	{
 		handleStartConversion();
 
-//        if( ui->centerCB->isChecked() )
-		if(true)
-        {
-            ui->infoLable->setText("Center mesh");
-            emit doCenter();
+		//        if( ui->centerCB->isChecked() )
+		if (true)
+		{
+			ui->infoLable->setText("Center mesh");
+			emit doCenter();
 
-            // when done, center_done is called
-        }
-        else
-        {
-            // jump directly to center_done
-            center_done(true);
-        }
-    }
-    else
-    {
-//        ui->infoLable->setText("Read DICOM failed");
-        handleEndConversion();
-    }
+			// when done, center_done is called
+		}
+		else
+		{
+			// jump directly to center_done
+			center_done(true);
+		}
+	}
+	else
+	{
+		//        ui->infoLable->setText("Read DICOM failed");
+		handleEndConversion();
+	}
 }
 
 void MainWindow::center_done(bool ok)
@@ -214,124 +214,124 @@ void MainWindow::center_done(bool ok)
 
 	qDebug() << "-----------------------------------> center_done is Called()";
 
-    if( ok )
-    {
+	if (ok)
+	{
 		handleStartConversion();
 
 		if (true)
 
-//        if( ui->reduceCB->isChecked() )
-        {
-            ui->infoLable->setText("Mesh reduction");
-            emit doReduction(0.50);
+			//        if( ui->reduceCB->isChecked() )
+		{
+			ui->infoLable->setText("Mesh reduction");
+			emit doReduction(0.50);
 
-            // after reducing, reduction_done is called
-        }
-        else
-        {
-            // jump directly to center_done
-            reduction_done(true);
-        }
-    }
-    else
-    {
-//        ui->infoLable->setText("Center mesh failed");
-        handleEndConversion();
-    }
+			// after reducing, reduction_done is called
+		}
+		else
+		{
+			// jump directly to center_done
+			reduction_done(true);
+		}
+	}
+	else
+	{
+		//        ui->infoLable->setText("Center mesh failed");
+		handleEndConversion();
+	}
 }
 
 void MainWindow::reduction_done(bool ok)
 {
 	qDebug() << "-----------------------------------> reduction_done is Called()";
 
-    if( ok )
-    {
+	if (ok)
+	{
 		handleStartConversion();
 
-//        if(ui->filterCB->isChecked())
+		//        if(ui->filterCB->isChecked())
 		if (false)
 
-        {
-            ui->infoLable->setText("Filter small objects");
-//            emit doFilter(ui->filterSP->value());
+		{
+			ui->infoLable->setText("Filter small objects");
+			//            emit doFilter(ui->filterSP->value());
 			emit doFilter(0.0050);
 
-            // after filtering, filter_done is called
-        }
-        else
-        {
-            // jump directly to center_done
-            filter_done(true);
-        }
-    }
-    else
-    {
-        ui->infoLable->setText("Reduction failed");
-        handleEndConversion();
-    }
+			// after filtering, filter_done is called
+		}
+		else
+		{
+			// jump directly to center_done
+			filter_done(true);
+		}
+	}
+	else
+	{
+		ui->infoLable->setText("Reduction failed");
+		handleEndConversion();
+	}
 }
 
 void MainWindow::filter_done(bool ok)
 {
 	qDebug() << "-----------------------------------> filter_done is Called()";
 
-    if( ok )
-    {
+	if (ok)
+	{
 		handleStartConversion();
 
-//		if (ui->smoothCB->isChecked())
-		if(true)
-        {
-            ui->infoLable->setText("Smoothing mesh");
-            emit doSmoothing();
+		//		if (ui->smoothCB->isChecked())
+		if (true)
+		{
+			ui->infoLable->setText("Smoothing mesh");
+			emit doSmoothing();
 
-            // after smoothing, smoothing_done is called
-        }
-        else
-        {
-            // jump directly to center_done
-            smoothing_done(true);
-        }
-    }
-    else
-    {
-        ui->infoLable->setText("Filtering failed");
-        handleEndConversion();
-    }
+			// after smoothing, smoothing_done is called
+		}
+		else
+		{
+			// jump directly to center_done
+			smoothing_done(true);
+		}
+	}
+	else
+	{
+		ui->infoLable->setText("Filtering failed");
+		handleEndConversion();
+	}
 }
 
 
 void MainWindow::smoothing_done(bool ok)
 {
-	qDebug() << "-----------------------------------> smoothing_done is Called() P:"<< ok;
+	qDebug() << "-----------------------------------> smoothing_done is Called() P:" << ok;
 
-    if( ok )
+	if (ok)
 
-    {
+	{
 		handleStartConversion();
 
-//		m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/output1.stl";
+		//		m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/output1.stl";
 
-   //     if( m_mesh_path != "" )
-   //     {
-   //        ui->infoLable->setText("Export mesh file");
+		   //     if( m_mesh_path != "" )
+		   //     {
+		   //        ui->infoLable->setText("Export mesh file");
 
-			//qDebug() << "-----------------------------------> doExport is emitted";
+					//qDebug() << "-----------------------------------> doExport is emitted";
 
-   //         emit doExport(m_mesh_path);
+		   //         emit doExport(m_mesh_path);
 
-   //         // after exporting, export_done cis called
-   //     }
-   //     else
-   //     {
-   //         export_done(true);
-   //     }
-    }
-    else
-    {
-        ui->infoLable->setText("Smoothing failed");
-        handleEndConversion();
-    }
+		   //         // after exporting, export_done cis called
+		   //     }
+		   //     else
+		   //     {
+		   //         export_done(true);
+		   //     }
+	}
+	else
+	{
+		ui->infoLable->setText("Smoothing failed");
+		handleEndConversion();
+	}
 }
 
 void MainWindow::startExportProcess()
@@ -388,10 +388,10 @@ void MainWindow::startExportProcess()
 
 			// after exporting, export_done cis called
 		}
-	else
-	{
-		export_done(true);
-	}
+		else
+		{
+			export_done(true);
+		}
 	}
 }
 
@@ -399,56 +399,56 @@ void MainWindow::export_done(bool ok)
 {
 	qDebug() << "-----------------------------------> export_done is Called()";
 
-    if( ok )
-    {
+	if (ok)
+	{
 		handleStartConversion();
 
 		ui->infoLable->setText("Exported 3D Model");
 
-        ui->infoLable->setText("Visualize");
+		ui->infoLable->setText("Visualize");
 
-       //VTKMeshVisualizer::displayMesh( m_converter->getMesh() );
+		//VTKMeshVisualizer::displayMesh( m_converter->getMesh() );
 
-	   globalPolyData = m_converter->getMesh();  // Save the loaded STL data to the global variable
-
-
-	   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-	   //mapper->SetInputConnection(reader->GetOutputPort());
-	   mapper->SetInputData(globalPolyData);  // Use SetInputData to directly set the polydata
-
-	   vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-	   actor->SetMapper(mapper);
-
-	   vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
-	   actor->GetProperty()->SetColor(colors->GetColor3d("LightSteelBlue").GetData());
-
-	   ui->openGLWidget->setRenderWindow(mRenderWindow);
-
-	   mRenderer->AddActor(actor);
-	   mRenderer->SetBackground(colors->GetColor3d("Black").GetData());
-	   mRenderer->ResetCamera();
-
-	   mRenderWindow->Render();
+		globalPolyData = m_converter->getMesh();  // Save the loaded STL data to the global variable
 
 
-        handleEndConversion();
-    }
-    else
-    {
-        ui->infoLable->setText("Export failed");
-        handleEndConversion();
-    }
+		vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		//mapper->SetInputConnection(reader->GetOutputPort());
+		mapper->SetInputData(globalPolyData);  // Use SetInputData to directly set the polydata
+
+		vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+		actor->SetMapper(mapper);
+
+		vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
+		actor->GetProperty()->SetColor(colors->GetColor3d("LightSteelBlue").GetData());
+
+		ui->openGLWidget->setRenderWindow(mRenderWindow);
+
+		mRenderer->AddActor(actor);
+		mRenderer->SetBackground(colors->GetColor3d("Black").GetData());
+		mRenderer->ResetCamera();
+
+		mRenderWindow->Render();
+
+
+		handleEndConversion();
+	}
+	else
+	{
+		ui->infoLable->setText("Export failed");
+		handleEndConversion();
+	}
 }
 
 void MainWindow::converterProgress(double progress)
 {
-   emit doUpdateProgress(progress);
+	emit doUpdateProgress(progress);
 }
 
 
 void MainWindow::updateProgress(double progress)
 {
-    ui->progressBar->setValue(static_cast<int>(progress));
+	ui->progressBar->setValue(static_cast<int>(progress));
 }
 
 void MainWindow::on_importDICOMButton_clicked()
@@ -463,7 +463,7 @@ void MainWindow::on_importDICOMButton_clicked()
 
 	loadDicom(m_dicom_path);
 	showDicom();
-//	show_loaded_dicom();
+	//	show_loaded_dicom();
 }
 
 void MainWindow::loadDicom(const QString& folderName)
@@ -569,9 +569,9 @@ void MainWindow::on_importSTLButton_clicked()
 		return;
 	}
 
-//	QString fileName = "C:/Users/DELL/Downloads/Cube_3d_printing_sample.stl";
+	//	QString fileName = "C:/Users/DELL/Downloads/Cube_3d_printing_sample.stl";
 
-		//
+			//
 	vtkSmartPointer<vtkSTLReader> reader = vtkSmartPointer<vtkSTLReader>::New();
 	reader->SetFileName(fileName.toStdString().c_str());
 	reader->Update();
