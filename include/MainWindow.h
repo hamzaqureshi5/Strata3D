@@ -2,53 +2,63 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+
 #include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkRenderer.h>
 #include <QVTKInteractor.h>
 #include <vtkInteractorStyle.h>
-#include <QDebug>
 #include <vtkNamedColors.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkRenderer.h>
 #include <vtkActor2D.h>
 #include <vtkDICOMImageReader.h>
 #include <vtkImageViewer2.h>
 #include <vtkInteractorStyleImage.h>
 #include <vtkTextMapper.h>
 #include <vtkTextProperty.h>
-#include <sstream>
+#include <vtkCallbackCommand.h>
+#include <vtkSmartPointer.h>
+#include <vtkSphereSource.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkActor.h>
+#include <vtkImageMapper3D.h>
+#include <vtkImageActor.h>
+#include <vtkImageViewer2.h>
+#include <vtkProperty.h>
+#include <vtkSTLReader.h>
+#include <vtkSTLWriter.h>
+#include <QVTKOpenGLNativeWidget.h>
+//#include "meshVisualizer.h"
+
 
 #include "ui_MainWindow.h"
-#include <QMainWindow>
-
-
 #include "dicomConverter.h"
+#include "dcm_movements.h"
 
-#include <vtkCallbackCommand.h>
+#include <QMainWindow>
 #include <QWidget>
 #include <QThread>
 #include <QString>
+#include <QDebug>
+#include <QPixmap>
+#include <QFile>
+#include <QGraphicsView>
+#include <QImage>
+#include <QByteArray>
+#include <QFileDialog>
+#include <QGraphicsScene>
+#include <QDateTime>
+
+#include <sstream>
+
+
 
 
 namespace Ui {
 	class MainWindow;
 }
-
-//class D2MWidget : public QWidget, public DicomConverter_Listener
-//{
-//	Q_OBJECT
-//
-//public:
-//	explicit D2MWidget(QWidget* parent = 0);
-//	~D2MWidget();
-//
-//};
-//
-
-
 
 
 class MainWindow : public QMainWindow , public DicomConverter_Listener
@@ -63,6 +73,10 @@ private slots:
 	void on_importDICOMButton_clicked();
 	void on_importSTLButton_clicked();
 	void exportSTLFile();
+	void show_loaded_stl();
+	void show_loaded_dicom();
+	void loadDicom(const QString& folderName);
+	void showDicom();
 
 
 
@@ -74,8 +88,9 @@ public:
 public slots:
 	void openDicomBtn();
 	void saveBtn();
-	void runBtn();
+	void startConvProcess();
 	void updateProgress(double progress);
+	void load_dicom();
 
 	void load_done(bool ok);
 	void center_done(bool ok);
@@ -103,13 +118,14 @@ private:
 
 private:
 	Ui::MainWindow* ui;
-	vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;
-	vtkSmartPointer<vtkRenderer> mRenderer;
-	vtkSmartPointer<QVTKInteractor> mInteractor;
 	vtkSmartPointer<vtkInteractorStyleTrackballCamera> mInteractorStyle;
-	vtkSmartPointer<vtkImageViewer2> mImageViewer;
+	vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;
+	vtkSmartPointer<vtkImageViewer2> imageViewer;
+	vtkSmartPointer<QVTKInteractor> mInteractor;
+	vtkSmartPointer<vtkRenderer> mRenderer;
+
 	vtkSmartPointer<vtkActor> actor;
-	vtkSmartPointer<vtkPolyData> globalPolyData = vtkSmartPointer<vtkPolyData>::New();
+	vtkSmartPointer<vtkPolyData> globalPolyData /*= vtkSmartPointer<vtkPolyData>::New()*/;
 
 	QString m_dicom_path;
 	QString m_mesh_path;
@@ -120,193 +136,121 @@ private:
 };
 
 
-//#pragma once
-//#ifndef MAINWINDOW_H
-//#define MAINWINDOW_H
-//
-////
-////#include <QMainWindow>
-////
-//#include <vtkGenericOpenGLRenderWindow.h>
-//#include <vtkRenderer.h>
-//#include <QVTKInteractor.h>
-//#include <vtkInteractorStyle.h>
-////
-//// This example demonstrates how to read a series of dicom images
-//// and how to scroll with the mousewheel or the up/down keys
-//// through all slices
-////
-//// Some standard vtk headers.
-//#include <QDebug>
-//
-//#include <vtkNamedColors.h>
-//#include <vtkNew.h>
-//#include <vtkObjectFactory.h>
-//#include <vtkRenderWindow.h>
-//#include <vtkRenderWindowInteractor.h>
-//#include <vtkRenderer.h>
-//// Headers needed for this example.
-//#include <vtkActor2D.h>
-//#include <vtkDICOMImageReader.h>
-//#include <vtkImageViewer2.h>
-//#include <vtkInteractorStyleImage.h>
-//#include <vtkTextMapper.h>
-//#include <vtkTextProperty.h>
-//// Needed to easily convert int to std::string.
-//#include <sstream>
-//
-//
-//
-//
-//
-//#include "ui_MainWindow.h"
-//
-//#include <QMainWindow>
-//
-//class MainWindow : public QMainWindow
-//{
-//	Q_OBJECT
-//
-//public:
-//	explicit MainWindow(QWidget* parent = nullptr);
-//	~MainWindow();
-//
-//
-////	void switchToDICOM();
-////	void switchToSTL();
-//
-//
-//private slots:
-//	void on_importDICOMButton_clicked();
-//	void on_importSTLButton_clicked();
-//
-//
-//private:
-//
-//	Ui::MainWindow* ui;
-//	vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;
-//	vtkSmartPointer<vtkRenderer> mRenderer;
-//	vtkSmartPointer<QVTKInteractor> mInteractor;
-//	vtkSmartPointer<vtkInteractorStyleTrackballCamera> mInteractorStyle;
-//	vtkSmartPointer<vtkImageViewer2> mImageViewer;
-//	vtkSmartPointer<vtkActor> actor;
-//
-//};
 
 
 
-  namespace {
-
-	// Helper class to format slice status message.
-	class StatusMessage
-	{
-	public:
-		static std::string Format(int slice, int maxSlice)
-		{
-			std::stringstream tmp;
-			tmp << "Slice Number  " << slice + 1 << "/" << maxSlice + 1;
-			return tmp.str();
-		}
-	};
-
-	// Define own interaction style.
-	class myVtkInteractorStyleImage : public vtkInteractorStyleImage
-	{
-	public:
-		static myVtkInteractorStyleImage* New();
-		vtkTypeMacro(myVtkInteractorStyleImage, vtkInteractorStyleImage);
-
-	protected:
-		vtkImageViewer2* _ImageViewer;
-		vtkTextMapper* _StatusMapper;
-		int _Slice;
-		int _MinSlice;
-		int _MaxSlice;
-
-	public:
-		void SetImageViewer(vtkImageViewer2* imageViewer)
-		{
-			_ImageViewer = imageViewer;
-			_MinSlice = imageViewer->GetSliceMin();
-			_MaxSlice = imageViewer->GetSliceMax();
-			_Slice = _MinSlice;
-			cout << "Slicer: Min = " << _MinSlice << ", Max = " << _MaxSlice << std::endl;
-		}
-
-		void SetStatusMapper(vtkTextMapper* statusMapper)
-		{
-			_StatusMapper = statusMapper;
-		}
-
-	protected:
-		void MoveSliceForward()
-		{
-			if (_Slice < _MaxSlice)
-			{
-				_Slice += 1;
-				cout << "MoveSliceForward::Slice = " << _Slice << std::endl;
-				_ImageViewer->SetSlice(_Slice);
-				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
-				_StatusMapper->SetInput(msg.c_str());
-				_ImageViewer->Render();
-			}
-		}
-
-		void MoveSliceBackward()
-		{
-			if (_Slice > _MinSlice)
-			{
-				_Slice -= 1;
-				cout << "MoveSliceBackward::Slice = " << _Slice << std::endl;
-				_ImageViewer->SetSlice(_Slice);
-				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
-				_StatusMapper->SetInput(msg.c_str());
-				_ImageViewer->Render();
-
-			}
-		}
-
-		virtual void OnKeyDown()
-		{
-			std::string key = this->GetInteractor()->GetKeySym();
-			if (key.compare("Up") == 0)
-			{
-				// cout << "Up arrow key was pressed." << endl;
-				MoveSliceForward();
-			}
-			else if (key.compare("Down") == 0)
-			{
-				// cout << "Down arrow key was pressed." << endl;
-				MoveSliceBackward();
-			}
-			// forward event
-			vtkInteractorStyleImage::OnKeyDown();
-		}
-
-		virtual void OnMouseWheelForward()
-		{
-			// std::cout << "Scrolled mouse wheel forward." << std::endl;
-			MoveSliceForward();
-			// don't forward events, otherwise the image will be zoomed
-			// in case another interactorstyle is used (e.g. trackballstyle, ...)
-			// vtkInteractorStyleImage::OnMouseWheelForward();
-		}
-
-		virtual void OnMouseWheelBackward()
-		{
-			// std::cout << "Scrolled mouse wheel backward." << std::endl;
-			if (_Slice > _MinSlice)
-			{
-				MoveSliceBackward();
-			}
-			// don't forward events, otherwise the image will be zoomed
-			// in case another interactorstyle is used (e.g. trackballstyle, ...)
-			// vtkInteractorStyleImage::OnMouseWheelBackward();
-		}
-	};
-
-	vtkStandardNewMacro(myVtkInteractorStyleImage);
-
-} // namespace
+//  namespace {
+//
+//	// Helper class to format slice status message.
+//	class StatusMessage
+//	{
+//	public:
+//		static std::string Format(int slice, int maxSlice)
+//		{
+//			std::stringstream tmp;
+//			tmp << "Slice Number  " << slice + 1 << "/" << maxSlice + 1;
+//			return tmp.str();
+//		}
+//	};
+//
+//	// Define own interaction style.
+//	class myVtkInteractorStyleImage : public vtkInteractorStyleImage
+//	{
+//	public:
+//		static myVtkInteractorStyleImage* New();
+//		vtkTypeMacro(myVtkInteractorStyleImage, vtkInteractorStyleImage);
+//
+//	protected:
+//		vtkImageViewer2* _ImageViewer;
+//		vtkTextMapper* _StatusMapper;
+//		int _Slice;
+//		int _MinSlice;
+//		int _MaxSlice;
+//
+//	public:
+//		void SetImageViewer(vtkImageViewer2* imageViewer)
+//		{
+//			_ImageViewer = imageViewer;
+//			_MinSlice = imageViewer->GetSliceMin();
+//			_MaxSlice = imageViewer->GetSliceMax();
+//			_Slice = _MinSlice;
+//			cout << "Slicer: Min = " << _MinSlice << ", Max = " << _MaxSlice << std::endl;
+//		}
+//
+//		void SetStatusMapper(vtkTextMapper* statusMapper)
+//		{
+//			_StatusMapper = statusMapper;
+//		}
+//
+//	protected:
+//		void MoveSliceForward()
+//		{
+//			if (_Slice < _MaxSlice)
+//			{
+//				_Slice += 1;
+//				cout << "MoveSliceForward::Slice = " << _Slice << std::endl;
+//				_ImageViewer->SetSlice(_Slice);
+//				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
+//				_StatusMapper->SetInput(msg.c_str());
+//				_ImageViewer->Render();
+//			}
+//		}
+//
+//		void MoveSliceBackward()
+//		{
+//			if (_Slice > _MinSlice)
+//			{
+//				_Slice -= 1;
+//				cout << "MoveSliceBackward::Slice = " << _Slice << std::endl;
+//				_ImageViewer->SetSlice(_Slice);
+//				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
+//				_StatusMapper->SetInput(msg.c_str());
+//				_ImageViewer->Render();
+//
+//			}
+//		}
+//
+//		virtual void OnKeyDown()
+//		{
+//			std::string key = this->GetInteractor()->GetKeySym();
+//			if (key.compare("Up") == 0)
+//			{
+//				// cout << "Up arrow key was pressed." << endl;
+//				MoveSliceForward();
+//			}
+//			else if (key.compare("Down") == 0)
+//			{
+//				// cout << "Down arrow key was pressed." << endl;
+//				MoveSliceBackward();
+//			}
+//			// forward event
+//			vtkInteractorStyleImage::OnKeyDown();
+//		}
+//
+//		virtual void OnMouseWheelForward()
+//		{
+//			// std::cout << "Scrolled mouse wheel forward." << std::endl;
+//			MoveSliceForward();
+//			// don't forward events, otherwise the image will be zoomed
+//			// in case another interactorstyle is used (e.g. trackballstyle, ...)
+//			// vtkInteractorStyleImage::OnMouseWheelForward();
+//		}
+//
+//		virtual void OnMouseWheelBackward()
+//		{
+//			// std::cout << "Scrolled mouse wheel backward." << std::endl;
+//			if (_Slice > _MinSlice)
+//			{
+//				MoveSliceBackward();
+//			}
+//			// don't forward events, otherwise the image will be zoomed
+//			// in case another interactorstyle is used (e.g. trackballstyle, ...)
+//			// vtkInteractorStyleImage::OnMouseWheelBackward();
+//		}
+//	};
+//
+//	vtkStandardNewMacro(myVtkInteractorStyleImage);
+//
+//} // namespace
 
 #endif // MAINWINDOW_H

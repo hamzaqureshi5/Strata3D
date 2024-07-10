@@ -1,40 +1,8 @@
 #pragma once
 
-#include <vtkSmartPointer.h>
-#include <vtkSphereSource.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkActor.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkNamedColors.h>
-#include <vtkTextProperty.h>
-#include <vtkTextMapper.h>
-#include <vtkActor2D.h>
-#include <vtkImageMapper3D.h>
-#include <vtkDICOMImageReader.h>
-#include <vtkImageActor.h>
-#include <vtkInteractorStyleImage.h>
-#include <vtkImageViewer2.h>
-#include <vtkNew.h>
-#include <vtkProperty.h>
-#include <vtkSTLReader.h>
-#include <vtkSTLWriter.h>
-#include <QVTKOpenGLNativeWidget.h>
 
-#include <QDebug>
-#include <QPixmap>
-#include <QFile>
-#include <QGraphicsView>
-#include <QImage>
-#include <QByteArray>
-#include <QFileDialog>
-#include <QGraphicsScene>
-#include <QDateTime>
 #include "MainWindow.h"
-#include "ui_MainWindow.h"
 
-#include "meshVisualizer.h"
 
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent),
@@ -56,8 +24,10 @@ mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // U
 	
 	//connect(ui->openBtn, SIGNAL(clicked()), this, SLOT(openDicomBtn()));
     //connect(ui->saveBtn, SIGNAL(clicked()), this, SLOT(saveBtn()));
-    connect(ui->createSTL, SIGNAL(clicked()), this, SLOT(runBtn()));
-	//QObject::connect(ui->createSTL, &QPushButton::clicked, this, &MainWindow::runBtn);
+	// Signal-Slot connections for UI buttons
+	connect(ui->createSTL, &QPushButton::clicked, this, &MainWindow::startConvProcess);
+	connect(ui->exportSTL, &QPushButton::clicked, this, &MainWindow::startExportProcess);
+
 
     connect(this, &MainWindow::doUpdateProgress, this, &MainWindow::updateProgress);
 
@@ -89,13 +59,9 @@ mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // U
 
 
 	connect(this, &MainWindow::doSmoothing, m_converter, &DicomConverter::smoothing);
-
-	//QObject::connect(ui->exportSTL, &QPushButton::clicked, this, &MainWindow::smoothing_done);
     connect(m_converter, &DicomConverter::smoothing_Done, this, &MainWindow::smoothing_done);
 
-	// Connect export button to the export process
-	connect(ui->exportSTL, &QPushButton::clicked, this, &MainWindow::startExportProcess);
-
+	
 
 	connect(this, &MainWindow::doExport, m_converter, &DicomConverter::exportMesh);
 	connect(m_converter, &DicomConverter::export_Done, this, &MainWindow::export_done);
@@ -118,8 +84,12 @@ mInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New()) // U
 
 	
 	QObject::connect(ui->importDICOM, &QPushButton::clicked, this, &MainWindow::on_importDICOMButton_clicked);
-	QObject::connect(ui->STL, &QPushButton::clicked, this, &MainWindow::on_importSTLButton_clicked);
+	QObject::connect(ui->STL, &QPushButton::clicked, this, &MainWindow::show_loaded_stl);
+	QObject::connect(ui->DICOM, &QPushButton::clicked, this, &MainWindow::show_loaded_dicom);
+
 //	QObject::connect(ui->nerve, &QPushButton::clicked, this, &MainWindow::exportSTLFile);
+
+	ui->progressBar->setHidden(true);
 
 }
 
@@ -136,11 +106,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::handleStartConversion()
 {
+	ui->progressBar->setHidden(false);
 //    ui->runBtn->setEnabled(false);
 }
 
 void MainWindow::handleEndConversion()
 {
+	ui->progressBar->setHidden(true);
 //    ui->runBtn->setEnabled(true);
 }
 
@@ -172,12 +144,13 @@ void MainWindow::saveBtn()
     }
 }
 
-// start conversion -> a cascade of functions will be asynchronous called
-void MainWindow::runBtn()
+//// start conversion -> a cascade of functions will be asynchronous called
+void MainWindow::startConvProcess()
 {
     handleStartConversion();
-	m_dicom_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/dicom_example";
-	m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/output.stl";
+//	m_dicom_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/dicom_example";
+//	m_dicom_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/MULTIFRAME";
+//	m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v7/example/output.stl";
 
     // Read Dicom images
     ui->infoLable->setText("Read DICOM images");
@@ -188,14 +161,33 @@ void MainWindow::runBtn()
 
 	qDebug() << "-----------------------------------> RUN BTN is Called()";
 
+	handleEndConversion();
+
+}
+
+void MainWindow::load_dicom()
+{
+	handleStartConversion();
+
+		// Read Dicom images
+	ui->infoLable->setText("Read DICOM images");
+	//    emit doLoad( m_dicom_path, ui->thresholdSpinBox->value());
+	emit doLoad(m_dicom_path, 400);
+
+
+	handleEndConversion();
+
 }
 
 void MainWindow::load_done(bool ok)
 {
+
 	qDebug() << "-----------------------------------> load_done is Called() P: "<< ok;
 
     if( ok )
     {
+		handleStartConversion();
+
 //        if( ui->centerCB->isChecked() )
 		if(true)
         {
@@ -219,10 +211,13 @@ void MainWindow::load_done(bool ok)
 
 void MainWindow::center_done(bool ok)
 {
+
 	qDebug() << "-----------------------------------> center_done is Called()";
 
     if( ok )
     {
+		handleStartConversion();
+
 		if (true)
 
 //        if( ui->reduceCB->isChecked() )
@@ -251,6 +246,8 @@ void MainWindow::reduction_done(bool ok)
 
     if( ok )
     {
+		handleStartConversion();
+
 //        if(ui->filterCB->isChecked())
 		if (false)
 
@@ -280,6 +277,8 @@ void MainWindow::filter_done(bool ok)
 
     if( ok )
     {
+		handleStartConversion();
+
 //		if (ui->smoothCB->isChecked())
 		if(true)
         {
@@ -307,23 +306,26 @@ void MainWindow::smoothing_done(bool ok)
 	qDebug() << "-----------------------------------> smoothing_done is Called() P:"<< ok;
 
     if( ok )
+
     {
-		m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/output1.stl";
+		handleStartConversion();
 
-        if( m_mesh_path != "" )
-        {
-           ui->infoLable->setText("Export mesh file");
+//		m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/output1.stl";
 
-			qDebug() << "-----------------------------------> doExport is emitted";
+   //     if( m_mesh_path != "" )
+   //     {
+   //        ui->infoLable->setText("Export mesh file");
 
-            emit doExport(m_mesh_path);
+			//qDebug() << "-----------------------------------> doExport is emitted";
 
-            // after exporting, export_done cis called
-        }
-        else
-        {
-            export_done(true);
-        }
+   //         emit doExport(m_mesh_path);
+
+   //         // after exporting, export_done cis called
+   //     }
+   //     else
+   //     {
+   //         export_done(true);
+   //     }
     }
     else
     {
@@ -334,46 +336,64 @@ void MainWindow::smoothing_done(bool ok)
 
 void MainWindow::startExportProcess()
 {
-	qDebug() << "-----------------------------------> smoothing_done is Called()";
-
-	m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/output1.stl";
-
-	if (m_mesh_path != "")
+	//		QString exportDirPath = QFileDialog::getSaveFileName(this, "Save mesh as", ".stl");
+	//		if (!exportDirPath.isEmpty()) {
+	QString exportDirPath = QFileDialog::getExistingDirectory(this, "Select Directory to Save STL File");
+	if (!exportDirPath.isEmpty())
 	{
-		ui->infoLable->setText("Exporting 3D Model");
-		QString exportDirPath = QFileDialog::getExistingDirectory(this, "Select Directory to Save STL File");
-		if (!exportDirPath.isEmpty())
-		{
-			// Get the current date
-			QDateTime currentDate = QDateTime::currentDateTime();
-			QString dateString = currentDate.toString("yyyyMMdd");
 
-			exportDirPath += "/ExportedSTL_" + dateString;
-			QDir exportDir;
-			if (!exportDir.exists(exportDirPath))
+		qDebug() << "-----------------------------------> smoothing_done is Called()";
+
+		//	if (m_mesh_path != "")
+		if (1)
+		{
+			ui->infoLable->setText("Exporting 3D Model");
+
 			{
-				exportDir.mkpath(exportDirPath);
+				// Get the current date
+				QDateTime currentDate = QDateTime::currentDateTime();
+				QString dateString = currentDate.toString("yyyyMMdd");
+
+				exportDirPath += "/ExportedSTL_" + dateString;
+				QDir exportDir;
+				if (!exportDir.exists(exportDirPath))
+				{
+					exportDir.mkpath(exportDirPath);
+				}
+
+				// File path for the exported STL
+				QString exportFilePath = exportDirPath + "/exported_model.stl";
+
+				m_mesh_path = exportFilePath;
+
 			}
 
-			// File path for the exported STL
-			QString exportFilePath = exportDirPath + "/exported_model.stl";
+			qDebug() << "-----------------------------------> doExport is emitted";
 
-			m_mesh_path = exportFilePath;
+			if (m_mesh_path != "")
+			{
+				ui->infoLable->setText("Export mesh file");
 
+				qDebug() << "-----------------------------------> doExport is emitted";
+
+				emit doExport(m_mesh_path);
+
+				// after exporting, export_done cis called
+			}
+			else
+			{
+				export_done(true);
+			}
+			//emit doExport(m_mesh_path);
+
+			// after exporting, export_done cis called
 		}
-
-		qDebug() << "-----------------------------------> doExport is emitted";
-
-		emit doExport(m_mesh_path);
-
-		// after exporting, export_done cis called
-	}
 	else
 	{
 		export_done(true);
 	}
+	}
 }
-
 
 void MainWindow::export_done(bool ok)
 {
@@ -381,6 +401,8 @@ void MainWindow::export_done(bool ok)
 
     if( ok )
     {
+		handleStartConversion();
+
 		ui->infoLable->setText("Exported 3D Model");
 
         ui->infoLable->setText("Visualize");
@@ -429,38 +451,46 @@ void MainWindow::updateProgress(double progress)
     ui->progressBar->setValue(static_cast<int>(progress));
 }
 
-
-
 void MainWindow::on_importDICOMButton_clicked()
 {
-	// Clear the existing scene
-	//mRenderer->RemoveAllViewProps();
-	//mRenderWindow->Render();
-
-//		 Select the DICOM folder
+	// Select the DICOM folder
 	QString folderName = QFileDialog::getExistingDirectory(this, "Select DICOM Directory", "");
 	if (folderName.isEmpty())
 		return;
 
 	m_dicom_path = folderName;
-	m_mesh_path ="stl.stl";
+	//m_mesh_path = "stl.stl";
 
+	loadDicom(m_dicom_path);
+	showDicom();
+//	show_loaded_dicom();
+}
 
-//	QString folderName = "C:/Users/DELL/Desktop/ReadDimcom/build/Release/digest_article";
-
-	vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
-
+void MainWindow::loadDicom(const QString& folderName)
+{
 	// Read the DICOM files from the specified directory
 	vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
 	reader->SetDirectoryName(folderName.toStdString().c_str());
 	reader->Update();
 
-	qDebug() <<"----------------------------------->" << QString( reader->GetPatientName());
+	qDebug() << "-----------------------------------> Patient Name: " << QString(reader->GetPatientName());
 
 	// Create an image viewer to display the DICOM images
-	vtkSmartPointer<vtkImageViewer2> imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
+	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
 	imageViewer->SetInputConnection(reader->GetOutputPort());
+}
 
+void MainWindow::showDicom()
+{
+	// Check if DICOM is loaded
+	if (!imageViewer)
+	{
+		qDebug() << "No DICOM data loaded.";
+		ui->infoLable->setText("No DICOM data loaded.");
+		return;
+	}
+
+	vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
 
 	// Create and configure a text property for displaying slice information
 	vtkNew<vtkTextProperty> sliceTextProp;
@@ -488,27 +518,19 @@ void MainWindow::on_importDICOMButton_clicked()
 	usageTextProp->SetJustificationToLeft();
 
 	// Create a text mapper to manage the usage instructions
-	// 
-	// 
 	vtkNew<vtkTextMapper> usageTextMapper;
 	usageTextMapper->SetInput(
-		"- Slice with mouse wheel\n  or Up/Down-Key\n- Zoom with pressed right\n "
-		" mouse button while dragging");
+		"- Slice with mouse wheel or Up/Down-Key\n- Zoom with pressed right mouse button while dragging");
 	usageTextMapper->SetTextProperty(usageTextProp);
 
 	// Create an actor to display the usage instructions
-	
 	vtkNew<vtkActor2D> usageTextActor;
-	
 	usageTextActor->SetMapper(usageTextMapper);
 	usageTextActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
 	usageTextActor->GetPositionCoordinate()->SetValue(0.05, 0.95);
 
-	
-
 	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-	vtkNew<myVtkInteractorStyleImage> style /*= vtkSmartPointer<myVtkInteractorStyleImage>::New()*/;
-
+	vtkNew<myVtkInteractorStyleImage> style;
 
 	// Set up the render window and renderer
 	vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
@@ -517,21 +539,18 @@ void MainWindow::on_importDICOMButton_clicked()
 	ui->openGLWidget->setRenderWindow(renderWindow);
 	imageViewer->SetRenderWindow(renderWindow);
 
+	ui->infoLable->setText("DICOM loaded successfully");
+
 
 	style->SetInteractionModeToImageSlicing();
 	style->SetImageViewer(imageViewer);
 	style->SetStatusMapper(sliceTextMapper);
 
-	//	renderWindowInteractor->SetInteractorStyle(style);
 	imageViewer->SetupInteractor(renderWindowInteractor);
-
-
 	renderWindowInteractor->SetInteractorStyle(style);
 
 	imageViewer->GetRenderer()->AddActor2D(sliceTextActor);
 	imageViewer->GetRenderer()->AddActor2D(usageTextActor);
-	// Create the render window interactor and set the custom interaction style
-
 
 	// Render and start interaction
 	imageViewer->Render();
@@ -543,10 +562,6 @@ void MainWindow::on_importDICOMButton_clicked()
 void MainWindow::on_importSTLButton_clicked()
 {
 
-	//switchToSTL();
-	//// Clear the existing scene
-	//mRenderer->RemoveAllViewProps();
-	//mRenderWindow->Render();
 
 	QString fileName = QFileDialog::getOpenFileName(this, "Open STL File", "", "STL Files (*.stl)");
 	if (fileName.isEmpty())
@@ -582,12 +597,142 @@ void MainWindow::on_importSTLButton_clicked()
 	mRenderWindow->Render();
 
 
-//	renderWindow->AddRenderer(renderer);
-//	imageViewer->SetRenderWindow(renderWindow);
+}
 
+void MainWindow::show_loaded_dicom()
+{
+
+	// Check if DICOM is loaded
+	if (!imageViewer)
+	{
+		qDebug() << "No DICOM data loaded.";
+		ui->infoLable->setText("No DICOM data loaded.");
+		return;
+	}
+
+	//	QString folderName = "C:/Users/DELL/Desktop/ReadDimcom/build/Release/digest_article";
+
+	vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
+
+	// Read the DICOM files from the specified directory
+	//vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
+	//reader->SetDirectoryName(folderName.toStdString().c_str());
+	//reader->Update();
+
+	//qDebug() << "----------------------------------->" << QString(reader->GetPatientName());
+
+	// Create an image viewer to display the DICOM images
+	//vtkSmartPointer<vtkImageViewer2> imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
+//	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
+//	imageViewer->SetInputConnection(reader->GetOutputPort());
+
+
+	// Create and configure a text property for displaying slice information
+	vtkNew<vtkTextProperty> sliceTextProp;
+	sliceTextProp->SetFontFamilyToCourier();
+	sliceTextProp->SetFontSize(20);
+	sliceTextProp->SetVerticalJustificationToBottom();
+	sliceTextProp->SetJustificationToLeft();
+
+	// Create a text mapper to manage the slice information text
+	vtkNew<vtkTextMapper> sliceTextMapper;
+	std::string msg = StatusMessage::Format(imageViewer->GetSliceMin(), imageViewer->GetSliceMax());
+	sliceTextMapper->SetInput(msg.c_str());
+	sliceTextMapper->SetTextProperty(sliceTextProp);
+
+	// Create an actor to display the slice information text
+	vtkNew<vtkActor2D> sliceTextActor;
+	sliceTextActor->SetMapper(sliceTextMapper);
+	sliceTextActor->SetPosition(15, 10);
+
+	// Create and configure a text property for usage instructions
+	vtkNew<vtkTextProperty> usageTextProp;
+	usageTextProp->SetFontFamilyToCourier();
+	usageTextProp->SetFontSize(14);
+	usageTextProp->SetVerticalJustificationToTop();
+	usageTextProp->SetJustificationToLeft();
+
+	// Create a text mapper to manage the usage instructions
+	// 
+	// 
+	vtkNew<vtkTextMapper> usageTextMapper;
+	usageTextMapper->SetInput(
+		"- Slice with mouse wheel or Up/Down-Key\n- Zoom with pressed right mouse button while dragging");
+	usageTextMapper->SetTextProperty(usageTextProp);
+
+	// Create an actor to display the usage instructions
+
+	vtkNew<vtkActor2D> usageTextActor;
+
+	usageTextActor->SetMapper(usageTextMapper);
+	usageTextActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+	usageTextActor->GetPositionCoordinate()->SetValue(0.05, 0.95);
+
+
+
+	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+	vtkNew<myVtkInteractorStyleImage> style /*= vtkSmartPointer<myVtkInteractorStyleImage>::New()*/;
+
+
+	// Set up the render window and renderer
+	vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
+	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
+	renderWindow->AddRenderer(renderer);
+	ui->openGLWidget->setRenderWindow(renderWindow);
+	imageViewer->SetRenderWindow(renderWindow);
+
+
+	style->SetInteractionModeToImageSlicing();
+	style->SetImageViewer(imageViewer);
+	style->SetStatusMapper(sliceTextMapper);
+
+	//	renderWindowInteractor->SetInteractorStyle(style);
+	imageViewer->SetupInteractor(renderWindowInteractor);
+
+
+	renderWindowInteractor->SetInteractorStyle(style);
+
+	imageViewer->GetRenderer()->AddActor2D(sliceTextActor);
+	imageViewer->GetRenderer()->AddActor2D(usageTextActor);
+	// Create the render window interactor and set the custom interaction style
+
+
+
+	// Render and start interaction
+	imageViewer->Render();
+	imageViewer->GetRenderer()->ResetCamera();
+	imageViewer->Render();
+	renderWindowInteractor->Start();
 
 }
 
+
+void MainWindow::show_loaded_stl()
+{
+	if (!globalPolyData)
+	{
+		ui->infoLable->setText("No STL data loaded.");
+		return;
+	}
+
+
+	vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	mapper->SetInputData(globalPolyData);  // Use SetInputData to directly set the polydata
+
+	vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+	actor->SetMapper(mapper);
+
+	vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
+	actor->GetProperty()->SetColor(colors->GetColor3d("LightSteelBlue").GetData());
+
+	ui->openGLWidget->setRenderWindow(mRenderWindow);
+
+	mRenderer->AddActor(actor);
+	mRenderer->SetBackground(colors->GetColor3d("Black").GetData());
+	mRenderer->ResetCamera();
+
+	mRenderWindow->Render();
+}
 
 
 
@@ -599,32 +744,67 @@ void MainWindow::exportSTLFile()
 		return;
 	}
 
-	// Get the current date
-	QDateTime currentDate = QDateTime::currentDateTime();
-	QString dateString = currentDate.toString("yyyyMMdd");
-
-	// Create a directory with the current date
+	// Get the directory where the user wants to save the STL file
 	QString exportDirPath = QFileDialog::getExistingDirectory(this, "Select Directory to Save STL File");
 	if (exportDirPath.isEmpty())
 	{
 		return;
 	}
 
-	exportDirPath += "/ExportedSTL_" + dateString;
-	QDir exportDir;
-	if (!exportDir.exists(exportDirPath))
+	// Get the file name with .stl extension
+	QString fileName = QFileDialog::getSaveFileName(this, "Save STL File", exportDirPath + "/output.stl", "STL Files (*.stl)");
+	if (fileName.isEmpty())
 	{
-		exportDir.mkpath(exportDirPath);
+		return;
 	}
 
-	// File path for the exported STL
-	QString exportFilePath = exportDirPath + "/exported_model.stl";
+	// Ensure the file name ends with .stl
+	if (!fileName.endsWith(".stl", Qt::CaseInsensitive))
+	{
+		fileName += ".stl";
+	}
 
-	// Write the current polydata to an STL file
-	vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
-	writer->SetFileName(exportFilePath.toStdString().c_str());
-	writer->SetInputData(globalPolyData);
-	writer->Write();
+	// Proceed with exporting the STL file
+	ui->infoLable->setText("Exporting STL file: " + fileName);
+	emit doExport(fileName);
 
-	qDebug() << "STL file successfully exported to:" << exportFilePath;
+	qDebug() << "Exporting STL file to: " << fileName;
 }
+
+//void MainWindow::exportSTLFile()
+//{
+//	if (!globalPolyData)
+//	{
+//		qDebug() << "No STL data loaded.";
+//		return;
+//	}
+//
+//	// Get the current date
+//	QDateTime currentDate = QDateTime::currentDateTime();
+//	QString dateString = currentDate.toString("yyyyMMdd");
+//
+//	// Create a directory with the current date
+//	QString exportDirPath = QFileDialog::getExistingDirectory(this, "Select Directory to Save STL File");
+//	if (exportDirPath.isEmpty())
+//	{
+//		return;
+//	}
+//
+//	exportDirPath += "/ExportedSTL_" + dateString;
+//	QDir exportDir;
+//	if (!exportDir.exists(exportDirPath))
+//	{
+//		exportDir.mkpath(exportDirPath);
+//	}
+//
+//	// File path for the exported STL
+//	QString exportFilePath = exportDirPath + "/exported_model.stl";
+//
+//	// Write the current polydata to an STL file
+//	vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
+//	writer->SetFileName(exportFilePath.toStdString().c_str());
+//	writer->SetInputData(globalPolyData);
+//	writer->Write();
+//
+//	qDebug() << "STL file successfully exported to:" << exportFilePath;
+//}

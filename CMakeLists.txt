@@ -60,4 +60,4 @@ target_link_libraries( DicomSegmentation dicom2meshlib)
 
 add_subdirectory(lib)
 #add_subdirectory(dicom2mesh)
-add_subdirectory(gui)
+#add_subdirectory(gui)
