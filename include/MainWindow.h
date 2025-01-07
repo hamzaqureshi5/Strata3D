@@ -13,6 +13,7 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkActor2D.h>
+#include <vtkDICOMReader.h>
 #include <vtkDICOMImageReader.h>
 #include <vtkImageViewer2.h>
 #include <vtkInteractorStyleImage.h>
@@ -32,10 +33,12 @@
 #include <QVTKOpenGLNativeWidget.h>
 //#include "meshVisualizer.h"
 
+//#include <itkImage.h>
+
 
 #include "ui_MainWindow.h"
 #include "dicomConverter.h"
-#include "dcm_movements.h"
+#include "dcm_interactor.h"
 
 #include <QMainWindow>
 #include <QWidget>
@@ -53,7 +56,7 @@
 
 #include <sstream>
 
-
+#include "dcmtk/dcmjpeg/djcodece.h"
 
 
 namespace Ui {

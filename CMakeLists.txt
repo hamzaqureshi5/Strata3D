@@ -7,12 +7,19 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_PREFIX_PATH $ENV{QTDIR})
+# set( "D:\dcmtk\build")
+
 find_package(OpenGL)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Xml REQUIRED)
 find_package(Qt5Widgets REQUIRED)
+
+
+#======================= INCLUSION OF DCMTK ======================#
+find_package(DCMTK REQUIRED)
+include_directories(${DCMTK_INCLUDE_DIRS})
 
 #======================= INCLUSION OF VTK ======================#
 set(VTK_DIR $ENV{VTK_DIR})
@@ -59,5 +66,5 @@ target_link_libraries( DicomSegmentation ${VTK_LIBRARIES})
 target_link_libraries( DicomSegmentation dicom2meshlib)
 
 add_subdirectory(lib)
-#add_subdirectory(dicom2mesh)
+add_subdirectory(dicom2mesh)
 #add_subdirectory(gui)

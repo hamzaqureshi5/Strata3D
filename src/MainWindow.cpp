@@ -2,7 +2,8 @@
 
 
 #include "MainWindow.h"
-
+#include <dcmtk/dcmdata/dctk.h>        // DICOM handling
+#include <dcmtk/dcmimgle/dcmimage.h>   // For DicomImage
 
 
 MainWindow::MainWindow(QWidget* parent) :
@@ -40,7 +41,6 @@ MainWindow::MainWindow(QWidget* parent) :
 
 	connect(this, &MainWindow::doLoad, m_converter, &DicomConverter::loadDicomImage);
 	connect(m_converter, &DicomConverter::loadDicomImage_Done, this, &MainWindow::load_done);
-
 
 	connect(this, &MainWindow::doCenter, m_converter, &DicomConverter::centerMesh);
 	connect(m_converter, &DicomConverter::centerMesh_Done, this, &MainWindow::center_done);
@@ -89,7 +89,7 @@ MainWindow::MainWindow(QWidget* parent) :
 	QObject::connect(ui->DICOM, &QPushButton::clicked, this, &MainWindow::show_loaded_dicom);
 
 
-	ui->progressBar->setHidden(true);
+//	ui->progressBar->setHidden(true);
 
 }
 
@@ -106,13 +106,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::handleStartConversion()
 {
-	ui->progressBar->setHidden(false);
+//	ui->progressBar->setHidden(false);
 	//    ui->runBtn->setEnabled(false);
 }
 
 void MainWindow::handleEndConversion()
 {
-	ui->progressBar->setHidden(true);
+//	ui->progressBar->setHidden(true);
 	//    ui->runBtn->setEnabled(true);
 }
 
@@ -235,7 +235,7 @@ void MainWindow::center_done(bool ok)
 	}
 	else
 	{
-		//        ui->infoLable->setText("Center mesh failed");
+        ui->infoLable->setText("Center mesh failed");
 		handleEndConversion();
 	}
 }
@@ -309,6 +309,32 @@ void MainWindow::smoothing_done(bool ok)
 
 	{
 		handleStartConversion();
+
+		ui->infoLable->setText("Visualize");
+
+		//VTKMeshVisualizer::displayMesh( m_converter->getMesh() );
+
+		globalPolyData = m_converter->getMesh();  // Save the loaded STL data to the global variable
+
+
+		vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		//mapper->SetInputConnection(reader->GetOutputPort());
+		mapper->SetInputData(globalPolyData);  // Use SetInputData to directly set the polydata
+
+		vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+		actor->SetMapper(mapper);
+
+		vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
+		actor->GetProperty()->SetColor(colors->GetColor3d("LightSteelBlue").GetData());
+
+		ui->openGLWidget->setRenderWindow(mRenderWindow);
+
+		mRenderer->AddActor(actor);
+		mRenderer->SetBackground(colors->GetColor3d("Black").GetData());
+		mRenderer->ResetCamera();
+
+		mRenderWindow->Render();
+
 
 		//		m_mesh_path = "C:/Users/DELL/Downloads/dicomsegmentation_v6/example/output1.stl";
 
@@ -405,30 +431,30 @@ void MainWindow::export_done(bool ok)
 
 		ui->infoLable->setText("Exported 3D Model");
 
-		ui->infoLable->setText("Visualize");
+		//ui->infoLable->setText("Visualize");
 
-		//VTKMeshVisualizer::displayMesh( m_converter->getMesh() );
+		////VTKMeshVisualizer::displayMesh( m_converter->getMesh() );
 
-		globalPolyData = m_converter->getMesh();  // Save the loaded STL data to the global variable
+		//globalPolyData = m_converter->getMesh();  // Save the loaded STL data to the global variable
 
 
-		vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-		//mapper->SetInputConnection(reader->GetOutputPort());
-		mapper->SetInputData(globalPolyData);  // Use SetInputData to directly set the polydata
+		//vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		////mapper->SetInputConnection(reader->GetOutputPort());
+		//mapper->SetInputData(globalPolyData);  // Use SetInputData to directly set the polydata
 
-		vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-		actor->SetMapper(mapper);
+		//vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+		//actor->SetMapper(mapper);
 
-		vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
-		actor->GetProperty()->SetColor(colors->GetColor3d("LightSteelBlue").GetData());
+		//vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
+		//actor->GetProperty()->SetColor(colors->GetColor3d("LightSteelBlue").GetData());
 
-		ui->openGLWidget->setRenderWindow(mRenderWindow);
+		//ui->openGLWidget->setRenderWindow(mRenderWindow);
 
-		mRenderer->AddActor(actor);
-		mRenderer->SetBackground(colors->GetColor3d("Black").GetData());
-		mRenderer->ResetCamera();
+		//mRenderer->AddActor(actor);
+		//mRenderer->SetBackground(colors->GetColor3d("Black").GetData());
+		//mRenderer->ResetCamera();
 
-		mRenderWindow->Render();
+		//mRenderWindow->Render();
 
 
 		handleEndConversion();
@@ -466,6 +492,22 @@ void MainWindow::on_importDICOMButton_clicked()
 	//	show_loaded_dicom();
 }
 
+//void MainWindow::loadDicom(const QString& folderName)
+//{
+//	// Read the DICOM files from the specified directory
+//	vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
+//	reader->SetDirectoryName(folderName.toStdString().c_str());
+//	reader->Update();
+//
+//	qDebug() << "-----------------------------------> Patient Name: " << QString(reader->GetPatientName());
+//
+//	// Create an image viewer to display the DICOM images
+//	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
+//	imageViewer->SetInputConnection(reader->GetOutputPort());
+//}
+
+
+
 void MainWindow::loadDicom(const QString& folderName)
 {
 	// Read the DICOM files from the specified directory
@@ -474,11 +516,18 @@ void MainWindow::loadDicom(const QString& folderName)
 	reader->Update();
 
 	qDebug() << "-----------------------------------> Patient Name: " << QString(reader->GetPatientName());
-
+	ui->patientname->setText(reader->GetPatientName());
 	// Create an image viewer to display the DICOM images
 	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
 	imageViewer->SetInputConnection(reader->GetOutputPort());
 }
+//
+//
+//#include "vtkDICOMReader.h"
+//#include "vtkDICOMSorter.h"
+//#include "vtkDirectory.h"
+
+
 
 void MainWindow::showDicom()
 {
@@ -541,7 +590,6 @@ void MainWindow::showDicom()
 
 	ui->infoLable->setText("DICOM loaded successfully");
 
-
 	style->SetInteractionModeToImageSlicing();
 	style->SetImageViewer(imageViewer);
 	style->SetStatusMapper(sliceTextMapper);
@@ -558,6 +606,115 @@ void MainWindow::showDicom()
 	imageViewer->Render();
 	renderWindowInteractor->Start();
 }
+
+
+//void MainWindow::loadDicom(const QString& folderName)
+//{
+//	// Read the DICOM files from the specified directory
+//	vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
+//	reader->SetDirectoryName(folderName.toStdString().c_str());
+//	reader->Update();
+//
+//	qDebug() << "-----------------------------------> Patient Name: " << QString(reader->GetPatientName());
+//	ui->patientname->setText(reader->GetPatientName());
+//
+//	// Create an image viewer to display the DICOM images
+//	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
+//	imageViewer->SetInputConnection(reader->GetOutputPort());
+//
+//	// Set up the render window and renderer
+//	vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
+//	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
+//	renderWindow->AddRenderer(renderer);
+//	ui->openGLWidget->setRenderWindow(renderWindow);
+//	imageViewer->SetRenderWindow(renderWindow);
+//
+//	// Set up the render window interactor
+//	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+//	imageViewer->SetupInteractor(renderWindowInteractor);
+//}
+
+
+////////////////////////////////////////////////////////////////////
+// OLD
+//void MainWindow::showDicom()
+//{
+//	// Check if DICOM is loaded
+//	if (!imageViewer)
+//	{
+//		qDebug() << "No DICOM data loaded.";
+//		ui->infoLable->setText("No DICOM data loaded.");
+//		return;
+//	}
+//
+//	vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
+//
+//	// Create and configure a text property for displaying slice information
+//	vtkNew<vtkTextProperty> sliceTextProp;
+//	sliceTextProp->SetFontFamilyToCourier();
+//	sliceTextProp->SetFontSize(20);
+//	sliceTextProp->SetVerticalJustificationToBottom();
+//	sliceTextProp->SetJustificationToLeft();
+//
+//	// Create a text mapper to manage the slice information text
+//	vtkNew<vtkTextMapper> sliceTextMapper;
+//	std::string msg = StatusMessage::Format(imageViewer->GetSliceMin(), imageViewer->GetSliceMax());
+//	sliceTextMapper->SetInput(msg.c_str());
+//	sliceTextMapper->SetTextProperty(sliceTextProp);
+//
+//	// Create an actor to display the slice information text
+//	vtkNew<vtkActor2D> sliceTextActor;
+//	sliceTextActor->SetMapper(sliceTextMapper);
+//	sliceTextActor->SetPosition(15, 10);
+//
+//	// Create and configure a text property for usage instructions
+//	vtkNew<vtkTextProperty> usageTextProp;
+//	usageTextProp->SetFontFamilyToCourier();
+//	usageTextProp->SetFontSize(14);
+//	usageTextProp->SetVerticalJustificationToTop();
+//	usageTextProp->SetJustificationToLeft();
+//
+//	// Create a text mapper to manage the usage instructions
+//	vtkNew<vtkTextMapper> usageTextMapper;
+//	usageTextMapper->SetInput(
+//		"- Slice with mouse wheel or Up/Down-Key\n- Zoom with pressed right mouse button while dragging");
+//	usageTextMapper->SetTextProperty(usageTextProp);
+//
+//	// Create an actor to display the usage instructions
+//	vtkNew<vtkActor2D> usageTextActor;
+//	usageTextActor->SetMapper(usageTextMapper);
+//	usageTextActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+//	usageTextActor->GetPositionCoordinate()->SetValue(0.05, 0.95);
+//
+//	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+//	vtkNew<myVtkInteractorStyleImage> style;
+//
+//	// Set up the render window and renderer
+//	vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
+//	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
+//	renderWindow->AddRenderer(renderer);
+//	ui->openGLWidget->setRenderWindow(renderWindow);
+//	imageViewer->SetRenderWindow(renderWindow);
+//
+//	ui->infoLable->setText("DICOM loaded successfully");
+//
+//
+//	style->SetInteractionModeToImageSlicing();
+//	style->SetImageViewer(imageViewer);
+//	style->SetStatusMapper(sliceTextMapper);
+//
+//	imageViewer->SetupInteractor(renderWindowInteractor);
+//	renderWindowInteractor->SetInteractorStyle(style);
+//
+//	imageViewer->GetRenderer()->AddActor2D(sliceTextActor);
+//	imageViewer->GetRenderer()->AddActor2D(usageTextActor);
+//
+//	// Render and start interaction
+//	imageViewer->Render();
+//	imageViewer->GetRenderer()->ResetCamera();
+//	imageViewer->Render();
+//	renderWindowInteractor->Start();
+//}
 
 void MainWindow::on_importSTLButton_clicked()
 {
