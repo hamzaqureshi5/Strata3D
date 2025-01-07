@@ -56,6 +56,7 @@
 
 #include <sstream>
 
+#include "dcmtk/dcmjpeg/djcodece.h"
 
 
 namespace Ui {
