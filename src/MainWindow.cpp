@@ -17,7 +17,16 @@
 #include <vtkImageAppend.h>
 #include <vtkImageData.h>
 #include <vtkPointData.h>
+#include <vtkSmartPointer.h>
+#include <vtkImageData.h>
+#include <vtkImageViewer2.h>
 
+#include <gdcmReader.h>
+#include <gdcmImageReader.h>
+#include <gdcmFileMetaInformation.h>
+#include <gdcmImage.h>
+#include <gdcmReader.h>
+#include <gdcmImageReader.h>
 
 MainWindow::MainWindow(QWidget* parent) :
 	QMainWindow(parent),
@@ -504,22 +513,6 @@ void MainWindow::on_importDICOMButton_clicked()
 	showDicom();
 	//	show_loaded_dicom();
 }
-
-//void MainWindow::loadDicom(const QString& folderName)
-//{
-//	// Read the DICOM files from the specified directory
-//	vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
-//	reader->SetDirectoryName(folderName.toStdString().c_str());
-//	reader->Update();
-//
-//	qDebug() << "-----------------------------------> Patient Name: " << QString(reader->GetPatientName());
-//
-//	// Create an image viewer to display the DICOM images
-//	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
-//	imageViewer->SetInputConnection(reader->GetOutputPort());
-//}
-
-
 
 void MainWindow::loadDicom(const QString& folderName)
 {

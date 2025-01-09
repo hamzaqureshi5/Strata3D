@@ -15,7 +15,31 @@ find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Xml REQUIRED)
 find_package(Qt5Widgets REQUIRED)
+find_package(GDCM REQUIRED)
 
+#======================= INCLUSION OF GDCM ======================#
+
+#include_directories("C:/Program Files/GDCM 3.0/include")
+#link_directories("C:/Program Files/GDCM 3.0/lib")
+# Get the GDCM_DIR environment variable
+#set(GDCM_DIR $ENV{GDCM_DIR})
+#set(GDCM_INCLUDE_DIR "C:/Program Files/GDCM/include")
+#set(GDCM_LIBRARY_DIR "C:/Program Files/GDCM/lib")
+
+# Include directories and library directories
+#include_directories(${GDCM_INCLUDE_DIR})
+#link_directories(${GDCM_LIBRARY_DIR})
+
+
+# Debug messages to verify paths
+#message("GDCM Root Directory: ${GDCM_DIR}")
+#message("GDCM Include Directory: ${GDCM_INCLUDE_DIR}")
+#message("GDCM Library Directory: ${GDCM_LIBRARY_DIR}")
+
+
+find_package(GDCM REQUIRED)
+include_directories(${GDCM_INCLUDE_DIRS})
+link_directories(${GDCM_LIBRARY_DIRS})
 
 #======================= INCLUSION OF VTK ======================#
 set(VTK_DIR $ENV{VTK_DIR})
@@ -59,6 +83,7 @@ target_link_libraries( DicomSegmentation Qt5::Xml)
 target_link_libraries( DicomSegmentation Qt5::Widgets)
 target_link_libraries( DicomSegmentation ${QT_LIBRARIES} ${OPENGL_LIBRARIES})
 target_link_libraries( DicomSegmentation ${VTK_LIBRARIES})
+target_link_libraries( DicomSegmentation ${GDCM_LIBRARIES})
 target_link_libraries( DicomSegmentation dicom2meshlib)
 
 add_subdirectory(lib)
