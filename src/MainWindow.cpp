@@ -2,8 +2,21 @@
 
 
 #include "MainWindow.h"
-#include <dcmtk/dcmdata/dctk.h>        // DICOM handling
-#include <dcmtk/dcmimgle/dcmimage.h>   // For DicomImage
+#include <QtCore/QDir>
+#include <QtCore/QDebug>
+#include <vtkSmartPointer.h>
+#include <vtkImageViewer2.h>
+#include <vtkDICOMImageReader.h>
+#include <vtkNamedColors.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkTextProperty.h>
+#include <vtkTextMapper.h>
+#include <vtkActor2D.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkImageAppend.h>
+#include <vtkImageData.h>
+#include <vtkPointData.h>
 
 
 MainWindow::MainWindow(QWidget* parent) :
@@ -521,12 +534,6 @@ void MainWindow::loadDicom(const QString& folderName)
 	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
 	imageViewer->SetInputConnection(reader->GetOutputPort());
 }
-//
-//
-//#include "vtkDICOMReader.h"
-//#include "vtkDICOMSorter.h"
-//#include "vtkDirectory.h"
-
 
 
 void MainWindow::showDicom()
@@ -608,113 +615,6 @@ void MainWindow::showDicom()
 }
 
 
-//void MainWindow::loadDicom(const QString& folderName)
-//{
-//	// Read the DICOM files from the specified directory
-//	vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
-//	reader->SetDirectoryName(folderName.toStdString().c_str());
-//	reader->Update();
-//
-//	qDebug() << "-----------------------------------> Patient Name: " << QString(reader->GetPatientName());
-//	ui->patientname->setText(reader->GetPatientName());
-//
-//	// Create an image viewer to display the DICOM images
-//	imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
-//	imageViewer->SetInputConnection(reader->GetOutputPort());
-//
-//	// Set up the render window and renderer
-//	vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-//	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-//	renderWindow->AddRenderer(renderer);
-//	ui->openGLWidget->setRenderWindow(renderWindow);
-//	imageViewer->SetRenderWindow(renderWindow);
-//
-//	// Set up the render window interactor
-//	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-//	imageViewer->SetupInteractor(renderWindowInteractor);
-//}
-
-
-////////////////////////////////////////////////////////////////////
-// OLD
-//void MainWindow::showDicom()
-//{
-//	// Check if DICOM is loaded
-//	if (!imageViewer)
-//	{
-//		qDebug() << "No DICOM data loaded.";
-//		ui->infoLable->setText("No DICOM data loaded.");
-//		return;
-//	}
-//
-//	vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
-//
-//	// Create and configure a text property for displaying slice information
-//	vtkNew<vtkTextProperty> sliceTextProp;
-//	sliceTextProp->SetFontFamilyToCourier();
-//	sliceTextProp->SetFontSize(20);
-//	sliceTextProp->SetVerticalJustificationToBottom();
-//	sliceTextProp->SetJustificationToLeft();
-//
-//	// Create a text mapper to manage the slice information text
-//	vtkNew<vtkTextMapper> sliceTextMapper;
-//	std::string msg = StatusMessage::Format(imageViewer->GetSliceMin(), imageViewer->GetSliceMax());
-//	sliceTextMapper->SetInput(msg.c_str());
-//	sliceTextMapper->SetTextProperty(sliceTextProp);
-//
-//	// Create an actor to display the slice information text
-//	vtkNew<vtkActor2D> sliceTextActor;
-//	sliceTextActor->SetMapper(sliceTextMapper);
-//	sliceTextActor->SetPosition(15, 10);
-//
-//	// Create and configure a text property for usage instructions
-//	vtkNew<vtkTextProperty> usageTextProp;
-//	usageTextProp->SetFontFamilyToCourier();
-//	usageTextProp->SetFontSize(14);
-//	usageTextProp->SetVerticalJustificationToTop();
-//	usageTextProp->SetJustificationToLeft();
-//
-//	// Create a text mapper to manage the usage instructions
-//	vtkNew<vtkTextMapper> usageTextMapper;
-//	usageTextMapper->SetInput(
-//		"- Slice with mouse wheel or Up/Down-Key\n- Zoom with pressed right mouse button while dragging");
-//	usageTextMapper->SetTextProperty(usageTextProp);
-//
-//	// Create an actor to display the usage instructions
-//	vtkNew<vtkActor2D> usageTextActor;
-//	usageTextActor->SetMapper(usageTextMapper);
-//	usageTextActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
-//	usageTextActor->GetPositionCoordinate()->SetValue(0.05, 0.95);
-//
-//	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-//	vtkNew<myVtkInteractorStyleImage> style;
-//
-//	// Set up the render window and renderer
-//	vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-//	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-//	renderWindow->AddRenderer(renderer);
-//	ui->openGLWidget->setRenderWindow(renderWindow);
-//	imageViewer->SetRenderWindow(renderWindow);
-//
-//	ui->infoLable->setText("DICOM loaded successfully");
-//
-//
-//	style->SetInteractionModeToImageSlicing();
-//	style->SetImageViewer(imageViewer);
-//	style->SetStatusMapper(sliceTextMapper);
-//
-//	imageViewer->SetupInteractor(renderWindowInteractor);
-//	renderWindowInteractor->SetInteractorStyle(style);
-//
-//	imageViewer->GetRenderer()->AddActor2D(sliceTextActor);
-//	imageViewer->GetRenderer()->AddActor2D(usageTextActor);
-//
-//	// Render and start interaction
-//	imageViewer->Render();
-//	imageViewer->GetRenderer()->ResetCamera();
-//	imageViewer->Render();
-//	renderWindowInteractor->Start();
-//}
 
 void MainWindow::on_importSTLButton_clicked()
 {

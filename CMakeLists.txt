@@ -7,7 +7,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_PREFIX_PATH $ENV{QTDIR})
-# set( "D:\dcmtk\build")
+
 
 find_package(OpenGL)
 find_package(Qt5Core REQUIRED)
@@ -16,10 +16,6 @@ find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Xml REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 
-
-#======================= INCLUSION OF DCMTK ======================#
-find_package(DCMTK REQUIRED)
-include_directories(${DCMTK_INCLUDE_DIRS})
 
 #======================= INCLUSION OF VTK ======================#
 set(VTK_DIR $ENV{VTK_DIR})
@@ -44,12 +40,13 @@ file(GLOB_RECURSE SOURCES
 # Add the forms directory to the AUTOUIC search paths
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_AUTOUIC_SEARCH_PATHS} ${FORMS_DIR})
 
-# Add the executable
+# Add resources to the executable
 if (WIN32) 
     add_executable(DicomSegmentation WIN32 ${SOURCES})
 elseif(UNIX)
     add_executable(DicomSegmentation ${SOURCES})
 endif()
+
 
 # Add the target includes
 target_include_directories(DicomSegmentation PRIVATE ${FORMS_DIR})
@@ -62,9 +59,8 @@ target_link_libraries( DicomSegmentation Qt5::Xml)
 target_link_libraries( DicomSegmentation Qt5::Widgets)
 target_link_libraries( DicomSegmentation ${QT_LIBRARIES} ${OPENGL_LIBRARIES})
 target_link_libraries( DicomSegmentation ${VTK_LIBRARIES})
-
 target_link_libraries( DicomSegmentation dicom2meshlib)
 
 add_subdirectory(lib)
-add_subdirectory(dicom2mesh)
-#add_subdirectory(gui)
+# add_subdirectory(dicom2mesh)
+# add_subdirectory(gui)
