@@ -24,15 +24,23 @@
 #include "dicomConverter.h"
 
 #include "dicomFactory.h"
+#include "segmentation.h"
 
-#include <vtkAlgorithm.h>
-#include <string>
 #include <QDebug>
+#include <vtkAlgorithm.h>
+
+namespace {
+    // Fragments smaller than this fraction of the largest connected part are dropped.
+    const double kSmallObjectRatio = 0.02;
+    const double kReductionRate = 0.5;
+    const unsigned int kSmoothingIterations = 20;
+    // Erosion depth that separates touching teeth before region growing.
+    const double kSeparationMm = 0.6;
+}
 
 DicomConverter::DicomConverter(DicomConverter_Listener* host)
 {
     m_host = host;
-
     m_progressCB = vtkSmartPointer<vtkCallbackCommand>::New();
     m_progressCB->SetCallback(progressCallback);
     m_progressCB->SetClientData(static_cast<void*>(m_host));
@@ -42,155 +50,64 @@ DicomConverter::DicomConverter(DicomConverter_Listener* host)
 
     m_vmr = std::shared_ptr<VTKMeshRoutines>( new VTKMeshRoutines() );
     m_vmr->SetProgressCallback( m_progressCB );
-
-    m_vmd = std::shared_ptr<VTKMeshData>( new VTKMeshData() );
-    m_vmd->SetProgressCallback( m_progressCB );
 }
-
-//DicomConverter::DicomConverter(QObject* parent) : QObject(parent)
-//{
-//     Additional initialization if necessary
-//}
 
 void DicomConverter::progressCallback(vtkObject* caller, long unsigned int /*eventId*/, void* clientData, void* /*callData*/)
 {
-    // display progress in terminal
     vtkAlgorithm* filter = static_cast<vtkAlgorithm*>(caller);
-
     DicomConverter_Listener* host = static_cast<DicomConverter_Listener*>(clientData);
     host->converterProgress( filter->GetProgress() * 100);
 }
 
-
-void DicomConverter::loadDicomImage( const QString& pathToDicom, int threshold )
+void DicomConverter::buildStructureMesh(int structureId, vtkSmartPointer<vtkImageData> volume,
+                                        double lower, bool useUpper, double upper)
 {
-    bool ret;
+    qDebug() << "buildStructureMesh" << structureId << "lower" << lower << "upper" << (useUpper ? upper : -1);
 
-    std::cout << "loadDicomImage" << std::endl;
-    qDebug() << "-----------------------------------> loadDicomImage is Called()";
-
-    vtkSmartPointer<vtkImageData> imgData = m_vdr->loadDicomImage( pathToDicom.toStdString() );
-    if( imgData == NULL )
+    emit stageChanged("Extracting surface");
+    vtkSmartPointer<vtkPolyData> mesh = m_vdr->dicomToMesh( volume, static_cast<int>(lower), useUpper, static_cast<int>(upper) );
+    if( mesh == nullptr || mesh->GetNumberOfCells() == 0 )
     {
-        std::cerr << "No DICOM data could be found in the directory" << endl;
-        qDebug() << "-----------------------------------> No DICOM data could be found in the directory";
-        ret = false;
-    }
-    else
-    {
-        m_mesh = m_vdr->dicomToMesh( imgData, threshold, false, 0);
-
-        if( m_mesh->GetNumberOfCells() == 0 )
-        {
-            std::cerr << "No mesh could be created. Wrong DICOM or wrong iso value" << endl;
-            qDebug() << "-----------------------------------> No mesh could be created.Wrong DICOM or wrong iso value";
-            ret = false;
-        }
-        else
-        {
-            ret = true;
-        }
+        emit structureMeshReady(structureId, nullptr, "No surface found at this threshold");
+        return;
     }
 
-    emit loadDicomImage_Done(ret);
-
-    qDebug() << "-----------------------------------> loadDicomImage is Called() end";
-
+    finishMesh(structureId, mesh);
 }
 
-void DicomConverter::centerMesh()
+void DicomConverter::buildSeededMesh(int structureId, vtkSmartPointer<vtkImageData> volume,
+                                     double lower, int seedI, int seedJ, int seedK)
 {
-    m_vmr->moveMeshToCOSCenter( m_mesh );
-    emit centerMesh_Done(true);
+    emit stageChanged("Growing region from the clicked point");
+    const int seed[3] = { seedI, seedJ, seedK };
+    QString error;
+    vtkSmartPointer<vtkImageData> region = isolateRegion( volume, lower, seed, kSeparationMm, &error );
+    if( region == nullptr )
+    {
+        emit structureMeshReady(structureId, nullptr, error);
+        return;
+    }
+
+    emit stageChanged("Extracting surface");
+    vtkSmartPointer<vtkPolyData> mesh = m_vdr->dicomToMesh( region, static_cast<int>(lower), false, 0 );
+    if( mesh == nullptr || mesh->GetNumberOfCells() == 0 )
+    {
+        emit structureMeshReady(structureId, nullptr, "No surface found at this threshold");
+        return;
+    }
+    finishMesh(structureId, mesh);
 }
 
-void DicomConverter::reduction(double reductionRate)
+void DicomConverter::finishMesh(int structureId, vtkSmartPointer<vtkPolyData> mesh)
 {
-    bool ret = true;
+    emit stageChanged("Removing small fragments");
+    m_vmr->removeSmallObjects( mesh, kSmallObjectRatio );
 
-    if( reductionRate > 0.0 && reductionRate < 1.0 )
-    {
-        m_vmr->meshReduction(m_mesh, reductionRate);
-        ret = true;
-    }
-    else
-    {
-        std::cerr << "Invalid reduction rate: " << reductionRate << endl;
-        ret = false;
-    }
+    emit stageChanged("Reducing mesh");
+    m_vmr->meshReduction( mesh, kReductionRate );
 
-    emit reduction_Done(ret);
-}
+    emit stageChanged("Smoothing mesh");
+    m_vmr->smoothMesh( mesh, kSmoothingIterations );
 
-void DicomConverter::filtering(double filterRate )
-{
-    bool ret = true;
-
-    if( filterRate > 0.0 && filterRate < 1.0 )
-    {
-        m_vmr->removeSmallObjects(m_mesh, filterRate);
-        ret = true;
-    }
-    else
-    {
-        std::cerr << "Invalid filter rate: " << filterRate << endl;
-        ret = false;
-    }
-
-    emit filtering_Done(ret);
-}
-
-void DicomConverter::smoothing()
-{
-    bool ret = true;
-
-    m_vmr->smoothMesh(m_mesh, 20);
-
-    emit smoothing_Done(ret);
-}
-
-void DicomConverter::exportMesh(const QString &meshPath)
-{
-    qDebug() << "-----------------------------------> exportMesh is Called()";
-
-    bool ret = true;
-
-    std::string path = meshPath.toStdString();
-    std::string::size_type idx = path.rfind('.');
-    if( idx != std::string::npos )
-    {
-        std::string extension = path.substr(idx+1);
-
-        if( extension == "obj" )
-        {
-            m_vmd->exportAsObjFile(m_mesh, path);
-        }
-        else if( extension == "stl" )
-        {
-            m_vmd->exportAsStlFile( m_mesh, path );
-        }
-        else if( extension == "ply" )
-        {
-            m_vmd->exportAsPlyFile( m_mesh, path );
-        }
-        else
-        {
-            std::cerr << "Unknown file type" << endl;
-            ret = false;
-        }
-    }
-    else
-    {
-        std::cerr << "No Filename." << endl;
-        ret = false;
-    }
-
-    emit export_Done(ret);
-    qDebug() << "-----------------------------------> exportMesh is Called() end";
-
-}
-
-vtkSmartPointer<vtkPolyData> DicomConverter::getMesh()
-{
-    return m_mesh;
+    emit structureMeshReady(structureId, mesh, QString());
 }

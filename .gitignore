@@ -2,8 +2,6 @@
 build/
 build/ .
 build .
-example/ 
-example .
 
 # Prerequisites
 *.d

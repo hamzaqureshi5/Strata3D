@@ -2,258 +2,160 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-
-#include <vtkGenericOpenGLRenderWindow.h>
-#include <vtkRenderer.h>
 #include <QVTKInteractor.h>
-#include <vtkInteractorStyle.h>
-#include <vtkNamedColors.h>
-#include <vtkNew.h>
-#include <vtkObjectFactory.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkActor2D.h>
-#include <vtkDICOMReader.h>
-#include <vtkDICOMImageReader.h>
+#include <QVTKOpenGLNativeWidget.h>
+#include <vtkActor.h>
+#include <vtkCallbackCommand.h>
+#include <vtkGenericOpenGLRenderWindow.h>
+#include <vtkImageActor.h>
+#include <vtkImageData.h>
+#include <vtkImageThreshold.h>
 #include <vtkImageViewer2.h>
 #include <vtkInteractorStyleImage.h>
-#include <vtkTextMapper.h>
-#include <vtkTextProperty.h>
-#include <vtkCallbackCommand.h>
+#include <vtkInteractorStyleTrackballCamera.h>
+#include <vtkLookupTable.h>
+#include <vtkPolyData.h>
+#include <vtkRenderer.h>
 #include <vtkSmartPointer.h>
-#include <vtkSphereSource.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkActor.h>
-#include <vtkImageMapper3D.h>
-#include <vtkImageActor.h>
-#include <vtkImageViewer2.h>
-#include <vtkProperty.h>
-#include <vtkSTLReader.h>
-#include <vtkSTLWriter.h>
-#include <QVTKOpenGLNativeWidget.h>
-//#include "meshVisualizer.h"
+#include <vtkTextMapper.h>
 
-//#include <itkImage.h>
-
-
-#include "ui_MainWindow.h"
 #include "dicomConverter.h"
-#include "dcm_interactor.h"
+#include "segmentation.h"
+#include "ui_MainWindow.h"
 
 #include <QMainWindow>
-#include <QWidget>
-#include <QThread>
 #include <QString>
-#include <QDebug>
-#include <QPixmap>
-#include <QFile>
-#include <QGraphicsView>
-#include <QImage>
-#include <QByteArray>
-#include <QFileDialog>
-#include <QGraphicsScene>
-#include <QDateTime>
+#include <QThread>
 
-#include <sstream>
+#include <array>
 
-#include "dcmtk/dcmjpeg/djcodece.h"
-
+class QButtonGroup;
+class QStandardItem;
+class QStandardItemModel;
 
 namespace Ui {
-	class MainWindow;
+class MainWindow;
 }
 
-
-class MainWindow : public QMainWindow , public DicomConverter_Listener
-{
-	Q_OBJECT
-
-public:
-	explicit MainWindow(QWidget* parent = nullptr);
-	~MainWindow();
-
-private slots:
-	void on_importDICOMButton_clicked();
-	void on_importSTLButton_clicked();
-	void exportSTLFile();
-	void show_loaded_stl();
-	void show_loaded_dicom();
-	void loadDicom(const QString& folderName);
-	void showDicom();
-
-
+// Non-AI workflow: Import DICOM -> pick a structure -> adjust it on the slices
+// -> CREATE STL (one mesh per structure) -> EXPORT STL (one file each).
+//   BONE / All TEETH: threshold with a live overlay
+//   TOOTH: threshold + click the tooth (region grown from the click)
+//   NERVE: click points along the canal; tube of the slider's diameter
+class MainWindow : public QMainWindow, public DicomConverter_Listener {
+  Q_OBJECT
 
 public:
+  explicit MainWindow(QWidget *parent = nullptr);
+  ~MainWindow();
 
-	// from DicomConverter_Listener
-	void converterProgress(double progress);
+  // Loads a DICOM series folder and shows it in the slice view.
+  bool loadDicomFolder(const QString &folder);
+  // Writes one STL per created structure into a new timestamped folder inside
+  // `dir`. Returns that folder, or an empty string on failure.
+  QString exportStructures(const QString &dir);
 
-public slots:
-	void openDicomBtn();
-	void saveBtn();
-	void startConvProcess();
-	void updateProgress(double progress);
-	void load_dicom();
+  // What a left click on the slice view does in TOOTH / NERVE mode, by voxel
+  // index (k is the slice) or patient position.
+  void setToothSeed(int i, int j, int k);
+  void addNervePoint(const Point3 &position);
 
-	void load_done(bool ok);
-	void center_done(bool ok);
-	void reduction_done(bool ok);
-	void filter_done(bool ok);
-	void smoothing_done(bool ok);
-
-	void startExportProcess( );
-	void export_done(bool ok);
+  // from DicomConverter_Listener (called on the worker thread)
+  void converterProgress(double progress) override;
 
 signals:
-	void doLoad(const QString& pathToDicom, int threshold);
-	void doCenter();
-	void doReduction(double reductionRate);
-	void doFilter(double filterRate);
-	void doSmoothing();
-	void doExport(const QString& path);
+  void doBuildStructureMesh(int structureId,
+                            vtkSmartPointer<vtkImageData> volume, double lower,
+                            bool useUpper, double upper);
+  void doBuildSeededMesh(int structureId, vtkSmartPointer<vtkImageData> volume,
+                         double lower, int seedI, int seedJ, int seedK);
+  void doUpdateProgress(double progress);
 
-	void doUpdateProgress(double progress);
-
+private slots:
+  void importDicom();
+  void selectStructure(int structureId);
+  void thresholdChanged(int value);
+  void sliceSliderChanged(int value);
+  void createStl();
+  void exportStl();
+  void showSliceView();
+  void show3DView();
+  void structureMeshReady(int structureId, vtkSmartPointer<vtkPolyData> mesh,
+                          const QString &error);
+  void structureItemChanged(QStandardItem *item);
+  void updateProgress(double progress);
 
 private:
-	void handleStartConversion();
-	void handleEndConversion();
+  void createSliceView();
+  void configureSlider();
+  void updateAnnotations();
+  void onSliceClick();
+  bool onSliceKey(const std::string &key);
+  QString nerveHelp() const;
+  void updateOverlay();
+  void syncSliceUi();
+  void refreshStructureList();
+  void setBusy(bool busy);
+  void setStatus(const QString &text);
+  QString thresholdText(double value) const;
+  // threshold, or diameter for the nerve
+  QString settingText(int structureId, double value) const;
+  // Range [lower, upper) of a structure; upper is open-ended unless hasUpper.
+  void structureRange(int structureId, double &lower, bool &hasUpper,
+                      double &upper) const;
+  static void onSliceRenderStart(vtkObject *caller, unsigned long eventId,
+                                 void *clientData, void *callData);
+  static void onSliceInput(vtkObject *caller, unsigned long eventId,
+                           void *clientData, void *callData);
 
-private:
-	Ui::MainWindow* ui;
-	vtkSmartPointer<vtkInteractorStyleTrackballCamera> mInteractorStyle;
-	vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;
-	vtkSmartPointer<vtkImageViewer2> imageViewer;
-	vtkSmartPointer<QVTKInteractor> mInteractor;
-	vtkSmartPointer<vtkRenderer> mRenderer;
+  Ui::MainWindow *ui;
 
-	vtkSmartPointer<vtkActor> actor;
-	vtkSmartPointer<vtkPolyData> globalPolyData /*= vtkSmartPointer<vtkPolyData>::New()*/;
+  // 3D view (meshes)
+  vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;
+  vtkSmartPointer<vtkRenderer> mRenderer;
+  vtkSmartPointer<QVTKInteractor> mInteractor;
+  vtkSmartPointer<vtkInteractorStyleTrackballCamera> mInteractorStyle;
 
-	QString m_dicom_path;
-	QString m_mesh_path;
-	vtkSmartPointer<vtkCallbackCommand> m_progressCB /*= vtkSmartPointer<vtkCallbackCommand>::New()*/;
-	QThread m_conversionThread;
-	DicomConverter* m_converter;
+  // Slice view (DICOM + threshold overlay)
+  vtkSmartPointer<vtkImageData> m_volume;
+  vtkSmartPointer<vtkImageViewer2> imageViewer;
+  vtkSmartPointer<vtkGenericOpenGLRenderWindow> m_sliceRenderWindow;
+  vtkSmartPointer<QVTKInteractor> m_sliceInteractor;
+  vtkSmartPointer<vtkInteractorStyleImage> m_sliceStyle;
+  vtkSmartPointer<vtkTextMapper> m_sliceTextMapper;
+  vtkSmartPointer<vtkImageThreshold> m_overlayThreshold;
+  vtkSmartPointer<vtkLookupTable> m_overlayLut;
+  vtkSmartPointer<vtkImageActor> m_overlayActor;
+  vtkSmartPointer<vtkCallbackCommand> m_sliceRenderCB;
+  vtkSmartPointer<vtkCallbackCommand> m_sliceInputCB;
+  // Tooth seed and nerve trace, drawn on the current slice
+  vtkSmartPointer<vtkPolyData> m_seedMarker;
+  vtkSmartPointer<vtkActor> m_seedActor;
+  vtkSmartPointer<vtkPolyData> m_nerveTrace;
+  vtkSmartPointer<vtkActor> m_nerveTraceActor;
 
+  bool m_hasToothSeed = false;
+  int m_toothSeed[3] = {0, 0, 0};
+  std::vector<NervePath> m_nervePaths;  // last one is being traced
+  double m_nerveDiameter = 2.5;         // mm
+  int m_valueRange[2] = {0, 0};         // threshold slider range of the scan
+
+  std::array<Structure, StructureCount> m_structures;
+  std::array<double, StructureCount> m_requestedSetting{};
+  int m_activeStructure = -1;
+  bool m_hounsfield = false;
+  bool m_busy = false;
+  bool m_showing3D = true;
+  bool m_refreshingList = false;
+  bool m_resetMeshCamera = true;  // set the 3D camera on the first mesh of a scan
+
+  QButtonGroup *m_structureButtons;
+  QStandardItemModel *m_structureModel;
+  QString m_dicom_path;
+  QString m_patientName;
+
+  QThread m_conversionThread;
+  DicomConverter *m_converter;
 };
-
-
-
-
-
-//  namespace {
-//
-//	// Helper class to format slice status message.
-//	class StatusMessage
-//	{
-//	public:
-//		static std::string Format(int slice, int maxSlice)
-//		{
-//			std::stringstream tmp;
-//			tmp << "Slice Number  " << slice + 1 << "/" << maxSlice + 1;
-//			return tmp.str();
-//		}
-//	};
-//
-//	// Define own interaction style.
-//	class myVtkInteractorStyleImage : public vtkInteractorStyleImage
-//	{
-//	public:
-//		static myVtkInteractorStyleImage* New();
-//		vtkTypeMacro(myVtkInteractorStyleImage, vtkInteractorStyleImage);
-//
-//	protected:
-//		vtkImageViewer2* _ImageViewer;
-//		vtkTextMapper* _StatusMapper;
-//		int _Slice;
-//		int _MinSlice;
-//		int _MaxSlice;
-//
-//	public:
-//		void SetImageViewer(vtkImageViewer2* imageViewer)
-//		{
-//			_ImageViewer = imageViewer;
-//			_MinSlice = imageViewer->GetSliceMin();
-//			_MaxSlice = imageViewer->GetSliceMax();
-//			_Slice = _MinSlice;
-//			cout << "Slicer: Min = " << _MinSlice << ", Max = " << _MaxSlice << std::endl;
-//		}
-//
-//		void SetStatusMapper(vtkTextMapper* statusMapper)
-//		{
-//			_StatusMapper = statusMapper;
-//		}
-//
-//	protected:
-//		void MoveSliceForward()
-//		{
-//			if (_Slice < _MaxSlice)
-//			{
-//				_Slice += 1;
-//				cout << "MoveSliceForward::Slice = " << _Slice << std::endl;
-//				_ImageViewer->SetSlice(_Slice);
-//				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
-//				_StatusMapper->SetInput(msg.c_str());
-//				_ImageViewer->Render();
-//			}
-//		}
-//
-//		void MoveSliceBackward()
-//		{
-//			if (_Slice > _MinSlice)
-//			{
-//				_Slice -= 1;
-//				cout << "MoveSliceBackward::Slice = " << _Slice << std::endl;
-//				_ImageViewer->SetSlice(_Slice);
-//				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
-//				_StatusMapper->SetInput(msg.c_str());
-//				_ImageViewer->Render();
-//
-//			}
-//		}
-//
-//		virtual void OnKeyDown()
-//		{
-//			std::string key = this->GetInteractor()->GetKeySym();
-//			if (key.compare("Up") == 0)
-//			{
-//				// cout << "Up arrow key was pressed." << endl;
-//				MoveSliceForward();
-//			}
-//			else if (key.compare("Down") == 0)
-//			{
-//				// cout << "Down arrow key was pressed." << endl;
-//				MoveSliceBackward();
-//			}
-//			// forward event
-//			vtkInteractorStyleImage::OnKeyDown();
-//		}
-//
-//		virtual void OnMouseWheelForward()
-//		{
-//			// std::cout << "Scrolled mouse wheel forward." << std::endl;
-//			MoveSliceForward();
-//			// don't forward events, otherwise the image will be zoomed
-//			// in case another interactorstyle is used (e.g. trackballstyle, ...)
-//			// vtkInteractorStyleImage::OnMouseWheelForward();
-//		}
-//
-//		virtual void OnMouseWheelBackward()
-//		{
-//			// std::cout << "Scrolled mouse wheel backward." << std::endl;
-//			if (_Slice > _MinSlice)
-//			{
-//				MoveSliceBackward();
-//			}
-//			// don't forward events, otherwise the image will be zoomed
-//			// in case another interactorstyle is used (e.g. trackballstyle, ...)
-//			// vtkInteractorStyleImage::OnMouseWheelBackward();
-//		}
-//	};
-//
-//	vtkStandardNewMacro(myVtkInteractorStyleImage);
-//
-//} // namespace
 
 #endif // MAINWINDOW_H

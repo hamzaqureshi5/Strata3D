@@ -57,7 +57,7 @@ namespace {
 
 	protected:
 		vtkImageViewer2* _ImageViewer;
-		vtkTextMapper* _StatusMapper;
+		vtkTextMapper* _StatusMapper = nullptr;
 		int _Slice;
 		int _MinSlice;
 		int _MaxSlice;
@@ -68,8 +68,7 @@ namespace {
 			_ImageViewer = imageViewer;
 			_MinSlice = imageViewer->GetSliceMin();
 			_MaxSlice = imageViewer->GetSliceMax();
-			_Slice = _MinSlice;
-			cout << "Slicer: Min = " << _MinSlice << ", Max = " << _MaxSlice << std::endl;
+			_Slice = imageViewer->GetSlice();
 		}
 
 		void SetStatusMapper(vtkTextMapper* statusMapper)
@@ -80,26 +79,34 @@ namespace {
 	protected:
 		void MoveSliceForward()
 		{
+			// the slice can also change from outside (slice slider), so start from the viewer's
+			_Slice = _ImageViewer->GetSlice();
 			if (_Slice < _MaxSlice)
 			{
 				_Slice += 1;
-				cout << "MoveSliceForward::Slice = " << _Slice << std::endl;
 				_ImageViewer->SetSlice(_Slice);
-				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
-				_StatusMapper->SetInput(msg.c_str());
+				if (_StatusMapper)
+				{
+					std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
+					_StatusMapper->SetInput(msg.c_str());
+				}
 				_ImageViewer->Render();
 			}
 		}
 
 		void MoveSliceBackward()
 		{
+			// the slice can also change from outside (slice slider), so start from the viewer's
+			_Slice = _ImageViewer->GetSlice();
 			if (_Slice > _MinSlice)
 			{
 				_Slice -= 1;
-				cout << "MoveSliceBackward::Slice = " << _Slice << std::endl;
 				_ImageViewer->SetSlice(_Slice);
-				std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
-				_StatusMapper->SetInput(msg.c_str());
+				if (_StatusMapper)
+				{
+					std::string msg = StatusMessage::Format(_Slice, _MaxSlice);
+					_StatusMapper->SetInput(msg.c_str());
+				}
 				_ImageViewer->Render();
 
 			}

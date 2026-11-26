@@ -1,4 +1,4 @@
-﻿cmake_minimum_required( VERSION 3.0 )
+﻿cmake_minimum_required( VERSION 3.17 )
 
 project( dicom2meshlib )
 
@@ -68,7 +68,7 @@ IF(${TESTDICOM2MESHLIB})
     FetchContent_Declare(
         googletest
         # Specify the commit you depend on and update it regularly.
-        URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+        URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.zip
     )
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -82,5 +82,8 @@ IF(${TESTDICOM2MESHLIB})
     target_compile_features( runLibTests PRIVATE cxx_std_17 )
 #    target_compile_options( runLibTests PRIVATE -Wall -Wno-extra-semi )
     target_compile_options( runLibTests PRIVATE -Wall)
+    IF(NOT "${VTK_MAJOR_VERSION}" LESS 9)
+        vtk_module_autoinit(TARGETS runLibTests MODULES ${VTK_LIBRARIES})
+    ENDIF()
 ENDIF()
 

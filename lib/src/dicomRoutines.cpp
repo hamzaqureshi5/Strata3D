@@ -65,7 +65,7 @@ vtkSmartPointer<vtkImageData> VTKDicomRoutines::loadDicomImage( const std::strin
     rawVolumeData->DeepCopy(reader->GetOutput());
 
     // check if load was successful
-    if( checkDataLoaded(rawVolumeData) )
+    if( !checkDataLoaded(rawVolumeData) )
     {
         cerr << "No DICOM data in directory" << endl;
         return NULL;
@@ -79,6 +79,8 @@ vtkSmartPointer<vtkImageData> VTKDicomRoutines::loadDicomImage( const std::strin
 vtkSmartPointer<vtkPolyData> VTKDicomRoutines::dicomToMesh(vtkSmartPointer<vtkImageData> imageData, int threshold,
                                                            bool useUpperThreshold = false, int upperThreshold = 0)
 {
+    // Run the surface extraction on a thresholded copy; the caller's volume stays untouched.
+    vtkSmartPointer<vtkImageData> surfaceInput = imageData;
     if(useUpperThreshold)
     {
         cout << "Create surface mesh with iso value range = " << threshold << " to " << upperThreshold << endl;
@@ -89,7 +91,7 @@ vtkSmartPointer<vtkPolyData> VTKDicomRoutines::dicomToMesh(vtkSmartPointer<vtkIm
         imageThreshold->ReplaceInOn();
         imageThreshold->SetInValue(threshold - 1); // mask voxels with a value lower than the lower threshold
         imageThreshold->Update();
-        imageData->DeepCopy(imageThreshold->GetOutput());
+        surfaceInput = imageThreshold->GetOutput();
     }
     else
     {
@@ -99,7 +101,7 @@ vtkSmartPointer<vtkPolyData> VTKDicomRoutines::dicomToMesh(vtkSmartPointer<vtkIm
     vtkSmartPointer<vtkMarchingCubes> surfaceExtractor = vtkSmartPointer<vtkMarchingCubes>::New();
     surfaceExtractor->ComputeNormalsOn();
     surfaceExtractor->SetValue( 0,threshold ) ;
-    surfaceExtractor->SetInputData( imageData );
+    surfaceExtractor->SetInputData( surfaceInput );
     if( m_progressCallback.Get() != NULL )
     {
         surfaceExtractor->AddObserver(vtkCommand::ProgressEvent, m_progressCallback);

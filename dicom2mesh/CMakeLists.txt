@@ -1,4 +1,4 @@
-﻿cmake_minimum_required( VERSION 3.0 )
+﻿cmake_minimum_required( VERSION 3.17 )
 
 project( dicom2mesh )
 
@@ -14,6 +14,9 @@ target_link_libraries( dicom2mesh dicom2meshlib ${VTK_LIBRARIES} )
 #target_compile_options( dicom2mesh PRIVATE -Wall -Wno-extra-semi )
 target_compile_options( dicom2mesh PRIVATE)
 target_compile_features( dicom2mesh PRIVATE cxx_std_17 )
+IF(NOT "${VTK_MAJOR_VERSION}" LESS 9)
+    vtk_module_autoinit(TARGETS dicom2mesh MODULES ${VTK_LIBRARIES})
+ENDIF()
 
 
 # Test the library
@@ -26,7 +29,7 @@ IF(${TESTDICOM2MESH})
     FetchContent_Declare(
         googletest
         # Specify the commit you depend on and update it regularly.
-        URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+        URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.zip
     )
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -40,6 +43,9 @@ IF(${TESTDICOM2MESH})
     target_compile_features( runD2MTests PRIVATE cxx_std_17 )
 #    target_compile_options( runD2MTests PRIVATE -Wall -Wno-extra-semi )
     target_compile_options( runD2MTests PRIVATE -Wall)
+    IF(NOT "${VTK_MAJOR_VERSION}" LESS 9)
+        vtk_module_autoinit(TARGETS runD2MTests MODULES ${VTK_LIBRARIES})
+    ENDIF()
 ENDIF()
 
 
