@@ -1,12 +1,24 @@
 name: CI
 
+# Kept small on purpose: one run per change (pull requests, and pushes to main
+# after merging), none for documentation-only changes, and a time cap. Free for
+# public repositories; private ones use the account's included minutes.
 on:
   push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
   pull_request:
+    paths-ignore: ['**.md', 'docs/**']
+
+# A newer push to the same branch or PR cancels the run still in progress
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # a normal run takes about 3 minutes
     # Ubuntu 26.04 ships VTK's Qt module built against Qt 6, which Strata3D needs
     container: ubuntu:26.04
     steps:
