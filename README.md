@@ -22,7 +22,7 @@ structure as its own STL mesh for 3D printing, surgical planning or further CAD 
 > **Not a medical device.** Strata3D is not cleared for clinical use. Use it for
 > research, education and engineering work.
 
-![Strata3D: 3D view of a head and neck CT with bone and teeth meshes](docs/assets/screenshots/3d-bone-and-teeth.png)
+![Strata3D: 3D bone mesh of a skull segmented from a head CT](docs/assets/screenshots/3d-skull.png)
 
 ## Contents
 
@@ -57,17 +57,18 @@ explainable tools (thresholds, click-to-select, manual tracing).
 ## Screenshots
 
 All screenshots are captured from the running application by its UI test
-(`strata3d_ui_test --screenshots`) on a real, public, de-identified head and neck CT
-from The Cancer Imaging Archive ([example/README.md](example/README.md)).
+(`strata3d_ui_test --screenshots`) on real, public, de-identified CT scans from The
+Cancer Imaging Archive ([example/README.md](example/README.md)): a head-only CT for the
+bone images and a head and neck CT, which includes the teeth, for the dental tools.
 
 | | |
 |---|---|
-| ![Bone threshold overlay on an axial CT slice](docs/assets/screenshots/slices-bone-threshold.png) | ![Teeth threshold overlay on an axial CT slice](docs/assets/screenshots/slices-teeth-threshold.png) |
-| **Bone threshold.** The orange overlay shows exactly which voxels the bone mesh will contain. | **All teeth.** A higher threshold isolates tooth density (cyan). |
-| ![A tooth selected with a click on the slice](docs/assets/screenshots/single-tooth-selection.png) | ![Nerve canal traced with points on a phantom slice](docs/assets/screenshots/nerve-tracing.png) |
-| **Single tooth.** Click a tooth (red marker); only the region connected to it is meshed. | **Nerve tracing.** Points placed along the mandible below the teeth (an illustration of the tool, not a verified canal). |
-| ![Teeth and nerve tube in the 3D view](docs/assets/screenshots/3d-teeth-and-nerve.png) | ![Light theme with bone, teeth and nerve meshes](docs/assets/screenshots/light-theme.png) |
-| **3D view.** Teeth, the selected tooth (green) and the traced nerve, bone hidden. Each mesh can be shown or hidden. | **Light theme.** Dark is the default; View ▸ Theme switches. |
+| ![Bone threshold overlay on an axial slice of a head CT](docs/assets/screenshots/slices-bone-threshold.png) | ![The skull bone mesh in the light theme](docs/assets/screenshots/light-theme.png) |
+| **Bone threshold.** The orange overlay shows exactly which voxels the bone mesh will contain; the thin head cradle beside the skull stays below the threshold. | **Light theme.** The skull mesh from the same scan; dark is the default, View ▸ Theme switches. |
+| ![Teeth threshold overlay on an axial CT slice](docs/assets/screenshots/slices-teeth-threshold.png) | ![A tooth selected with a click on the slice](docs/assets/screenshots/single-tooth-selection.png) |
+| **All teeth.** A higher threshold isolates tooth density (cyan). | **Single tooth.** Click a tooth (red marker); only the region connected to it is meshed. |
+| ![Nerve canal traced with points on a CT slice](docs/assets/screenshots/nerve-tracing.png) | ![Teeth, a selected tooth and the nerve tube in the 3D view](docs/assets/screenshots/3d-teeth-and-nerve.png) |
+| **Nerve tracing.** Points placed along the mandible below the teeth (an illustration of the tool, not a verified canal). | **3D view.** Teeth, the selected tooth (green) and the traced nerve. Each mesh can be shown or hidden. |
 
 <details>
 <summary>Start screen</summary>

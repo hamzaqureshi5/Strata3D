@@ -40,6 +40,7 @@
 #include <QVTKOpenGLNativeWidget.h>
 #include <QtTest/QTest>
 
+#include <vtkCamera.h>
 #include <vtkCleanPolyData.h>
 #include <vtkPolyData.h>
 #include <vtkCommand.h>
@@ -61,6 +62,8 @@ namespace {
 
 const char *kRealCt = "example/downloads/tcga_thca_headneck_ct";
 const char *kPhantom = "example/dental_ct";
+// head only (no table), no teeth: used for the bone screenshots
+const char *kHeadCt = "example/downloads/cptac_aml_head_ct";
 const double kPi = 3.14159265358979323846;
 
 int g_failures = 0;
@@ -482,19 +485,30 @@ struct Strata3DUiTest {
   void captureScreenshots() {
     shot("empty-state");
 
-    load(kRealCt);
-    const double teeth = w.m_session.lower(TeethStructure);
-    const int kTeeth = densestSlice(teeth);
-    w.ui->sliceSlider->setValue(kTeeth);
+    // Bone on the head-only CT: no table or shoulders in the mesh
+    load(kHeadCt);
     w.ui->boneButton->click();
     shot("slices-bone-threshold");
     w.ui->createMeshButton->click();
     waitIdle();
+    // three-quarter view, as a user would turn it
+    w.m_meshView->m_renderer->GetActiveCamera()->Azimuth(40);
+    w.m_meshView->m_renderer->ResetCameraClippingRange();
+    w.m_meshView->render();
+    shot("3d-skull");
+    w.m_themeGroup->actions()[1]->trigger();
+    shot("light-theme");
+    w.m_themeGroup->actions()[0]->trigger();
+
+    // Teeth, single tooth and nerve need a scan with teeth: head & neck CT
+    load(kRealCt);
+    const double teeth = w.m_session.lower(TeethStructure);
+    const int kTeeth = densestSlice(teeth);
+    w.ui->sliceSlider->setValue(kTeeth);
     w.ui->teethButton->click();
     shot("slices-teeth-threshold");
     w.ui->createMeshButton->click();
     waitIdle();
-    shot("3d-bone-and-teeth");
 
     w.ui->toothButton->click();
     w.ui->sliceSlider->setValue(kTeeth);
@@ -560,9 +574,8 @@ struct Strata3DUiTest {
     w.ui->createMeshButton->click();
     pump(300);
 
-    // Teeth, the selected tooth and the nerve without the bone, framed on the
-    // jaw (as a user would zoom in)
-    w.m_meshModel->item(0)->setCheckState(Qt::Unchecked);
+    // Teeth, the selected tooth and the nerve, framed on the jaw (as a user
+    // would zoom in)
     w.show3DView();
     double focus[6];
     vtkPolyData *nerve = w.m_session.mesh(NerveStructure);
@@ -580,12 +593,6 @@ struct Strata3DUiTest {
     }
     shot("3d-teeth-and-nerve");
 
-    w.m_themeGroup->actions()[1]->trigger();
-    w.m_meshModel->item(0)->setCheckState(Qt::Checked);
-    w.ui->boneButton->click();
-    w.ui->sliceSlider->setValue(kTeeth);
-    shot("light-theme");
-    w.m_themeGroup->actions()[0]->trigger();
     discardMeshes();
   }
 };
