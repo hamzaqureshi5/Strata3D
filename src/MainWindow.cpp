@@ -629,7 +629,7 @@ void MainWindow::loadFinished() {
           .arg(m_hounsfield ? "CT, Hounsfield units"
                             : "Uncalibrated gray values (e.g. CBCT)"));
   ui->studyDetailsLabel->setToolTip(result.folder);
-  setWindowTitle(QString("%1[*] — DICOM Segmentation")
+  setWindowTitle(QString("%1[*] — Strata3D")
                      .arg(ui->patientLabel->text()));
 
   ui->viewStack->setCurrentWidget(ui->viewerPage);
@@ -1611,8 +1611,8 @@ void MainWindow::showShortcuts() {
 
 void MainWindow::showAbout() {
   QMessageBox::about(
-      this, "About DICOM Segmentation",
-      "<b>DICOM Segmentation</b><br>Segment bone, teeth, a single tooth and "
+      this, "About Strata3D",
+      "<b>Strata3D</b><br>Segment bone, teeth, a single tooth and "
       "the nerve canal from CT/CBCT and export them as STL.<br><br>Built "
       "with Qt, VTK and DCMTK. Mesh pipeline based on dicom2mesh (MIT). "
       "<br><br>Not cleared for clinical use.");

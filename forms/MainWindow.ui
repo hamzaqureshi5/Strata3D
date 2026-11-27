@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>DICOM Segmentation</string>
+   <string>Strata3D</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="centralLayout">

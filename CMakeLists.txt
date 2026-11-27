@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(DicomSegmentation)
+project(Strata3D)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -69,32 +69,32 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_AUTOUIC_SEARCH_PATHS} ${FORMS_DIR})
 
 # Add the executable
 if (WIN32)
-    add_executable(DicomSegmentation WIN32 ${SOURCES})
+    add_executable(Strata3D WIN32 ${SOURCES})
 elseif(UNIX)
-    add_executable(DicomSegmentation ${SOURCES})
+    add_executable(Strata3D ${SOURCES})
 endif()
 
 # Add the target includes
-target_include_directories(DicomSegmentation PRIVATE ${FORMS_DIR})
-target_include_directories(DicomSegmentation PRIVATE ${INCLUDE_DIR})
-target_include_directories(DicomSegmentation PRIVATE ${SOURCE_DIR})
-target_include_directories(DicomSegmentation PRIVATE ${VTK_DICOM_INCLUDE_DIR})
+target_include_directories(Strata3D PRIVATE ${FORMS_DIR})
+target_include_directories(Strata3D PRIVATE ${INCLUDE_DIR})
+target_include_directories(Strata3D PRIVATE ${SOURCE_DIR})
+target_include_directories(Strata3D PRIVATE ${VTK_DICOM_INCLUDE_DIR})
 
 #===================== LINKING LIBRARIES =======================#
-target_link_libraries( DicomSegmentation Qt6::OpenGL Qt6::OpenGLWidgets)
-target_link_libraries( DicomSegmentation Qt6::Xml)
-target_link_libraries( DicomSegmentation Qt6::Widgets Qt6::Concurrent)
-target_link_libraries( DicomSegmentation ${OPENGL_LIBRARIES})
-target_link_libraries( DicomSegmentation ${VTK_LIBRARIES})
-target_link_libraries( DicomSegmentation ${DCMTK_LIBRARIES})
+target_link_libraries( Strata3D Qt6::OpenGL Qt6::OpenGLWidgets)
+target_link_libraries( Strata3D Qt6::Xml)
+target_link_libraries( Strata3D Qt6::Widgets Qt6::Concurrent)
+target_link_libraries( Strata3D ${OPENGL_LIBRARIES})
+target_link_libraries( Strata3D ${VTK_LIBRARIES})
+target_link_libraries( Strata3D ${DCMTK_LIBRARIES})
 if(VTK_DICOM_LIBRARY)
-    target_link_libraries( DicomSegmentation ${VTK_DICOM_LIBRARY})
+    target_link_libraries( Strata3D ${VTK_DICOM_LIBRARY})
 endif()
 
-target_link_libraries( DicomSegmentation dicom2meshlib)
+target_link_libraries( Strata3D dicom2meshlib)
 
 if(NOT "${VTK_MAJOR_VERSION}" LESS 9)
-    vtk_module_autoinit(TARGETS DicomSegmentation MODULES ${VTK_LIBRARIES})
+    vtk_module_autoinit(TARGETS Strata3D MODULES ${VTK_LIBRARIES})
 endif()
 
 #===================== TOOLS =======================#

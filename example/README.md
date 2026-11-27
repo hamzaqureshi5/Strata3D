@@ -1,7 +1,7 @@
 # Example DICOM series
 
-Test data for DicomSegmentation. Open a folder with **Import DICOM**, or start the
-app with it: `./build/DicomSegmentation example/<folder>`.
+Test data for Strata3D. Open a folder with **File ▸ Open DICOM Folder…**, or start the
+app with it: `./build/Strata3D example/<folder>`.
 
 | Folder | What it is | Size |
 |---|---|---|

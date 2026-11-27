@@ -1,58 +1,59 @@
-### Dicom Segmentation ###
+# Strata3D
 
-# DicomSegmentation
+Strata3D turns CT and CBCT scans (DICOM series) into 3D surface models. Open a scan,
+segment bone, teeth, a single tooth or the nerve canal on the slices, and export each
+structure as its own STL file for 3D printing or planning.
 
-DicomSegmentation is a Qt C++ application designed for DICOM image segmentation using the Visualization Toolkit (VTK), the Insight Segmentation and Registration Toolkit (ITK), and the DICOM Toolkit (DCMTK).
+Built with Qt 6, VTK 9 and DCMTK (C++17). Not cleared for clinical use.
 
-## Table of Contents
+## Features
 
-- [Prerequisites](#prerequisites)
-- [Installing Dependencies](#installing-dependencies)
-- [Project Setup](#project-setup)
-- [Building the Project](#building-the-project)
-- [Running the Application](#running-the-application)
-- [Project Structure](#project-structure)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
+- **Open** a folder with one CT or CBCT series: File ▸ Open, recent scans, or drag the
+  folder onto the window. CT is read in Hounsfield units; uncalibrated CBCT is detected.
+- **Bone / All teeth**: threshold with a live colored overlay on the slices. Starting
+  values are 400 / 1500 HU for CT, or estimated from the histogram for CBCT.
+- **Single tooth**: set the threshold, click the tooth; the region connected to the click
+  is kept, with touching neighbours cut off.
+- **Nerve**: click points along the canal on the slices; a tube of adjustable diameter is
+  built through them (Backspace undo, Enter for the other side's canal).
+- **3D view** with one colored mesh per structure, visibility per mesh.
+- **Export STL**: `bone.stl`, `teeth.stl`, `tooth.stl`, `nerve.stl` in a timestamped
+  folder, upright in the scan's patient axes.
+- Dark and light themes, keyboard shortcuts (Help ▸ Keyboard Shortcuts), remembered
+  window layout and recent scans.
+- AI segmentation is planned (the button is in place).
 
-## Prerequisites
+## Build (Ubuntu 26.04)
 
-Ensure you have the following installed on your system:
+```bash
+sudo apt install build-essential cmake qt6-base-dev libvtk9-dev libvtk9-qt-dev \
+                 libdcmtk-dev libvtk-dicom-dev libgl1-mesa-dev
+cmake -S . -B build
+cmake --build build -j$(nproc)
+```
 
-1. **CMake**: Version 3.10 or later
-2. **Qt**: Version 5.15
-3. **Visual Studio**: Version 2022
-4. **VTK**: Version 9.
-5. **ITK**: Version 5.2 or later
-6. **DCMTK**: Version 3.6 or later
+Other platforms need the same libraries: Qt 6 (Widgets, OpenGLWidgets, Xml, Concurrent),
+VTK 9 built with Qt 6 support and vtk-dicom, and DCMTK ≥ 3.6. Set `QTDIR` / `VTK_DIR` if
+CMake cannot find them.
 
-## Installing Dependencies
+## Run
 
-### VTK Installation
+```bash
+./build/Strata3D                                         # empty window
+./build/Strata3D example/downloads/tcga_thca_headneck_ct # open a scan directly
+```
 
-1. **Using VTK Installer**:
-   - Download the precompiled binaries for VTK from the [VTK Download Page](https://vtk.org/download/).
-   - Extract the files to a directory, e.g., `C:\VTK`.
-   - Add to Path as well
+Example scans (a real head & neck CT and synthetic dental phantoms) are in `example/`;
+see `example/README.md` for their license and citation. `./build/dental_phantom <dir>`
+writes a new synthetic dental series.
 
+## Command-line converter
 
-### ITK Installation
+`./build/dicom2mesh/dicom2mesh -i <dicom_folder> -o out.stl -t 400` converts a series
+without the GUI (run it without arguments for all options).
 
-1. **Using ITK Installer**:
-   - Download the precompiled binaries for ITK 
-   - Extract the files to a directory, e.g., `C:\ITK`.
-   - Add to Path as well
+## Credits
 
-
-### DCMTK Installation
-
-1. **Using DCMTK Installer**:
-   - Download the precompiled binaries for DCMTK from the DCMTK.
-   - Extract the files to a directory, e.g., `C:\DCMTK`.
-   - Add to Path as well
-
-
-## Project Setup
-
-Build DicomSegmentation Project using Cmake
+The mesh pipeline in `lib/` and `dicom2mesh/` is based on
+[dicom2mesh](https://github.com/AOT-AG/DicomToMesh) by Adrian Schneider, AOT AG (MIT
+License). DICOM is a registered trademark of NEMA.

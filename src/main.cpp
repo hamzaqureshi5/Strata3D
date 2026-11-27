@@ -10,13 +10,13 @@ int main(int argc, char *argv[]) {
 
   QApplication app(argc, argv);
   // QSettings location (window layout, theme, recent scans)
-  QApplication::setOrganizationName("DicomSegmentation");
-  QApplication::setApplicationName("DicomSegmentation");
+  QApplication::setOrganizationName("Strata3D");
+  QApplication::setApplicationName("Strata3D");
 
   MainWindow mainWindow;
   mainWindow.show();
 
-  // Optional: DicomSegmentation <dicom_folder> opens that series on start
+  // Optional: Strata3D <dicom_folder> opens that series on start
   if (argc > 1)
     mainWindow.loadDicomFolder(QString::fromLocal8Bit(argv[1]));
 
