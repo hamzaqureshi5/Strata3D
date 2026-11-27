@@ -22,7 +22,7 @@ structure as its own STL mesh for 3D printing, surgical planning or further CAD 
 > **Not a medical device.** Strata3D is not cleared for clinical use. Use it for
 > research, education and engineering work.
 
-![Strata3D: 3D bone mesh of a skull segmented from a head CT](docs/assets/screenshots/3d-skull.png)
+![Strata3D: bone threshold overlay on a head CT slice](docs/assets/screenshots/slices-bone-threshold.png)
 
 ## Contents
 
@@ -63,19 +63,14 @@ bone images and a head and neck CT, which includes the teeth, for the dental too
 
 | | |
 |---|---|
-| ![Bone threshold overlay on an axial slice of a head CT](docs/assets/screenshots/slices-bone-threshold.png) | ![The skull bone mesh in the light theme](docs/assets/screenshots/light-theme.png) |
-| **Bone threshold.** The orange overlay shows exactly which voxels the bone mesh will contain; the thin head cradle beside the skull stays below the threshold. | **Light theme.** The skull mesh from the same scan; dark is the default, View ▸ Theme switches. |
 | ![Teeth threshold overlay on an axial CT slice](docs/assets/screenshots/slices-teeth-threshold.png) | ![A tooth selected with a click on the slice](docs/assets/screenshots/single-tooth-selection.png) |
 | **All teeth.** A higher threshold isolates tooth density (cyan). | **Single tooth.** Click a tooth (red marker); only the region connected to it is meshed. |
-| ![Nerve canal traced with points on a CT slice](docs/assets/screenshots/nerve-tracing.png) | ![Teeth, a selected tooth and the nerve tube in the 3D view](docs/assets/screenshots/3d-teeth-and-nerve.png) |
-| **Nerve tracing.** Points placed along the mandible below the teeth (an illustration of the tool, not a verified canal). | **3D view.** Teeth, the selected tooth (green) and the traced nerve. Each mesh can be shown or hidden. |
+| ![Nerve canal traced with points on a CT slice](docs/assets/screenshots/nerve-tracing.png) | ![Start screen with the Open DICOM Folder button](docs/assets/screenshots/empty-state.png) |
+| **Nerve tracing.** Points placed along the mandible below the teeth (an illustration of the tool, not a verified canal). | **Start screen.** Open a folder, drop it on the window, or pick a recent scan. |
 
-<details>
-<summary>Start screen</summary>
-
-![Empty state with Open DICOM Folder button](docs/assets/screenshots/empty-state.png)
-
-</details>
+The image at the top shows the **bone threshold** on the head-only CT: the orange
+overlay marks exactly which voxels the bone mesh will contain, and the thin head cradle
+beside the skull stays below the threshold.
 
 ## Features
 

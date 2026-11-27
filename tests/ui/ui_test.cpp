@@ -40,7 +40,6 @@
 #include <QVTKOpenGLNativeWidget.h>
 #include <QtTest/QTest>
 
-#include <vtkCamera.h>
 #include <vtkCleanPolyData.h>
 #include <vtkPolyData.h>
 #include <vtkCommand.h>
@@ -481,24 +480,14 @@ struct Strata3DUiTest {
 
   // ------------------------------------------------------- screenshots
 
-  // README screenshots: real CT only (no synthetic phantom).
+  // README screenshots: real CT only (no synthetic phantom), slice views only.
   void captureScreenshots() {
     shot("empty-state");
 
-    // Bone on the head-only CT: no table or shoulders in the mesh
+    // Bone on the head-only CT (no table or shoulders)
     load(kHeadCt);
     w.ui->boneButton->click();
     shot("slices-bone-threshold");
-    w.ui->createMeshButton->click();
-    waitIdle();
-    // three-quarter view, as a user would turn it
-    w.m_meshView->m_renderer->GetActiveCamera()->Azimuth(40);
-    w.m_meshView->m_renderer->ResetCameraClippingRange();
-    w.m_meshView->render();
-    shot("3d-skull");
-    w.m_themeGroup->actions()[1]->trigger();
-    shot("light-theme");
-    w.m_themeGroup->actions()[0]->trigger();
 
     // Teeth, single tooth and nerve need a scan with teeth: head & neck CT
     load(kRealCt);
@@ -571,28 +560,6 @@ struct Strata3DUiTest {
       pressKey("Return");
     }
     shot("nerve-tracing");
-    w.ui->createMeshButton->click();
-    pump(300);
-
-    // Teeth, the selected tooth and the nerve, framed on the jaw (as a user
-    // would zoom in)
-    w.show3DView();
-    double focus[6];
-    vtkPolyData *nerve = w.m_session.mesh(NerveStructure);
-    vtkPolyData *tooth = w.m_session.mesh(ToothStructure);
-    if (nerve && tooth) {
-      double b1[6], b2[6];
-      nerve->GetBounds(b1);
-      tooth->GetBounds(b2);
-      for (int a = 0; a < 3; ++a) {
-        focus[2 * a] = std::min(b1[2 * a], b2[2 * a]) - 12;
-        focus[2 * a + 1] = std::max(b1[2 * a + 1], b2[2 * a + 1]) + 12;
-      }
-      w.m_meshView->m_renderer->ResetCamera(focus);
-      w.m_meshView->render();
-    }
-    shot("3d-teeth-and-nerve");
-
     discardMeshes();
   }
 };
