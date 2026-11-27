@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Strata3D logo">
+  <title>Strata3D</title>
+  <!-- three stacked slices (strata) forming a 3D block; isometric layers -->
+  <g stroke-linejoin="round" transform="translate(0 11)">
+    <!-- bottom layer -->
+    <path d="M64 86 L108 64 L108 74 L64 96 Z" fill="#1d4f9e"/>
+    <path d="M64 86 L20 64 L20 74 L64 96 Z" fill="#2a63c0"/>
+    <path d="M64 42 L108 64 L64 86 L20 64 Z" fill="#3d8bfd"/>
+    <!-- middle layer -->
+    <path d="M64 70 L108 48 L108 56 L64 78 Z" fill="#2a63c0"/>
+    <path d="M64 70 L20 48 L20 56 L64 78 Z" fill="#3577e0"/>
+    <path d="M64 26 L108 48 L64 70 L20 48 Z" fill="#5c9dff"/>
+    <!-- top layer -->
+    <path d="M64 54 L108 32 L108 38 L64 60 Z" fill="#3577e0"/>
+    <path d="M64 54 L20 32 L20 38 L64 60 Z" fill="#4a8af0"/>
+    <path d="M64 10 L108 32 L64 54 L20 32 Z" fill="#a9ccff"/>
+  </g>
+</svg>

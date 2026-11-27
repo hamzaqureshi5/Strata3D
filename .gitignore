@@ -1,9 +1,10 @@
+# 
+Claude.md
+
 # Ignore build directory
 build/
 build/ .
 build .
-example/ 
-example .
 
 # Prerequisites
 *.d
@@ -37,3 +38,7 @@ example .
 *.exe
 *.out
 *.app
+
+# Local assistant files (not part of the repository)
+CLAUDE.md
+.claude/

@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    # Ubuntu 26.04 ships VTK's Qt module built against Qt 6, which Strata3D needs
+    container: ubuntu:26.04
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential cmake git ca-certificates \
+            qt6-base-dev libvtk9-dev libvtk9-qt-dev libdcmtk-dev libgl1-mesa-dev
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSTRATA3D_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      # Unit tests read example/ relative to the repository root. The UI test
+      # (strata3d_ui_test) is only compiled: it needs a desktop session.
+      - name: Unit tests
+        run: ./build/strata3d_unit_tests
