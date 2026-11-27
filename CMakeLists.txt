@@ -14,7 +14,7 @@ if(DEFINED ENV{QTDIR})
 endif()
 
 find_package(OpenGL)
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Xml Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Xml Widgets Concurrent)
 
 
 #======================= INCLUSION OF DCMTK ======================#
@@ -83,7 +83,7 @@ target_include_directories(DicomSegmentation PRIVATE ${VTK_DICOM_INCLUDE_DIR})
 #===================== LINKING LIBRARIES =======================#
 target_link_libraries( DicomSegmentation Qt6::OpenGL Qt6::OpenGLWidgets)
 target_link_libraries( DicomSegmentation Qt6::Xml)
-target_link_libraries( DicomSegmentation Qt6::Widgets)
+target_link_libraries( DicomSegmentation Qt6::Widgets Qt6::Concurrent)
 target_link_libraries( DicomSegmentation ${OPENGL_LIBRARIES})
 target_link_libraries( DicomSegmentation ${VTK_LIBRARIES})
 target_link_libraries( DicomSegmentation ${DCMTK_LIBRARIES})

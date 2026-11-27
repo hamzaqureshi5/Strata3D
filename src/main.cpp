@@ -9,6 +9,9 @@ int main(int argc, char *argv[]) {
   QSurfaceFormat::setDefaultFormat(QVTKOpenGLNativeWidget::defaultFormat());
 
   QApplication app(argc, argv);
+  // QSettings location (window layout, theme, recent scans)
+  QApplication::setOrganizationName("DicomSegmentation");
+  QApplication::setApplicationName("DicomSegmentation");
 
   MainWindow mainWindow;
   mainWindow.show();
