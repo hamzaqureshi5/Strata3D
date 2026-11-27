@@ -1,0 +1,3 @@
+[submodule "3rdparty/DicomToMesh"]
+	path = 3rdparty/DicomToMesh
+	url = https://github.com/AOT-AG/DicomToMesh.git

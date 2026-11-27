@@ -9,10 +9,9 @@ yet.
 ### Added
 - Project documentation: README, user guide, architecture and development guides,
   contributing guide, security policy, issue and pull request templates, CI workflow.
-- End-to-end UI test (`tests/ui/ui_test.cpp`, CMake option `STRATA3D_BUILD_UI_TESTS`)
-  that also captures the README screenshots.
+- End-to-end UI test (`tests/ui/ui_test.cpp`) that also captures the README
+  screenshots.
 - Application logo.
-- `lib/test/data/torus.obj` from upstream dicom2mesh; all library tests pass.
 
 ### Changed
 - Renamed the application to **Strata3D** (executable `build/Strata3D`).
@@ -21,6 +20,21 @@ yet.
   keyboard shortcuts, start screen with recent scans and drag and drop, background
   loading, remembered window layout and preferences, prompts before unexported meshes
   are lost.
+- Layered architecture: Qt-free `strata3d_core` (structures and rules, presets, DICOM
+  reading, region growing, nerve trace, mesh building, export, session state),
+  `strata3d_ui` (main window, separate slice and 3D views, mesh worker, typed settings)
+  and the `Strata3D` executable. See `docs/architecture.md` and `docs/adr/`.
+- DicomToMesh (dicom2meshlib) is now a git submodule in `3rdparty/DicomToMesh` instead of
+  copied `lib/` and `dicom2mesh/` folders; CMake ≥ 3.24 required.
+- Logging through Qt categories (`strata3d.*`), with VTK's messages routed into them.
+- vtk-dicom is no longer needed; DCMTK is optional (test-data generator only).
+- Unit tests of the core (`strata3d_unit_tests`, 35 tests); one CMake option
+  `STRATA3D_BUILD_TESTS` for unit and UI tests.
+- README screenshots use the real CT only.
+
+### Removed
+- Dead code: the commented-out `d2mWidget`, the unbuilt upstream `gui/` copy, an unused
+  icon and helper class.
 
 ## 2026-11-26 – Linux, segmentation workflow and examples
 

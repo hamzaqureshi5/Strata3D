@@ -11,8 +11,14 @@
 //
 // Settings are stored under a separate application name, so the user's own
 // Strata3D preferences are not touched.
-#include "MainWindow.h"
+#include "ui/main_window.h"
+#include "ui/mesh_view.h"
+#include "ui_main_window.h"
 
+#include <vtkImageViewer2.h>
+#include <QVTKInteractor.h>
+
+#include <QAction>
 #include <QActionGroup>
 #include <QApplication>
 #include <QDir>
@@ -35,6 +41,7 @@
 #include <QtTest/QTest>
 
 #include <vtkCleanPolyData.h>
+#include <vtkPolyData.h>
 #include <vtkCommand.h>
 #include <vtkMassProperties.h>
 #include <vtkPolyDataConnectivityFilter.h>
@@ -48,6 +55,8 @@
 #include <cstdio>
 #include <vector>
 
+using namespace strata3d;
+
 namespace {
 
 const char *kRealCt = "example/downloads/tcga_thca_headneck_ct";
@@ -55,6 +64,8 @@ const char *kPhantom = "example/dental_ct";
 const double kPi = 3.14159265358979323846;
 
 int g_failures = 0;
+
+double sq(double v) { return v * v; }
 
 void check(bool ok, const QString &what) {
   std::printf("%s %s\n", ok ? "PASS" : "FAIL", what.toUtf8().constData());
@@ -135,14 +146,14 @@ struct Strata3DUiTest {
 
   // Real mouse input on the slice view at a patient position on the slice
   void clickAt(double x, double y) {
-    vtkRenderer *ren = w.imageViewer->GetRenderer();
+    vtkRenderer *ren = w.m_sliceView->m_viewer->GetRenderer();
     double o[3], sp[3];
     w.m_volume->GetOrigin(o);
     w.m_volume->GetSpacing(sp);
-    ren->SetWorldPoint(x, y, o[2] + w.imageViewer->GetSlice() * sp[2], 1.0);
+    ren->SetWorldPoint(x, y, o[2] + w.m_sliceView->slice() * sp[2], 1.0);
     ren->WorldToDisplay();
     double *d = ren->GetDisplayPoint();
-    vtkRenderWindowInteractor *iren = w.m_sliceInteractor;
+    vtkRenderWindowInteractor *iren = w.m_sliceView->m_interactor;
     iren->SetEventInformation(static_cast<int>(std::lround(d[0])),
                               static_cast<int>(std::lround(d[1])), 0, 0, 0, 0);
     iren->InvokeEvent(vtkCommand::MouseMoveEvent);
@@ -151,18 +162,32 @@ struct Strata3DUiTest {
   }
 
   void pressKey(const char *keySym) {
-    w.m_sliceInteractor->SetKeySym(keySym);
-    w.m_sliceInteractor->InvokeEvent(vtkCommand::KeyPressEvent);
+    w.m_sliceView->m_interactor->SetKeySym(keySym);
+    w.m_sliceView->m_interactor->InvokeEvent(vtkCommand::KeyPressEvent);
   }
 
+  // Presses a shortcut on the window. Shortcuts only arrive while the window
+  // has focus; if another window took it (someone using the desktop), the
+  // action bound to the shortcut is triggered instead, so the binding and
+  // the behaviour are still checked.
   void keyShortcut(Qt::Key key, Qt::KeyboardModifiers mods) {
     w.activateWindow();
     pump(150);
-    if (QApplication::activeWindow() != &w)
-      std::printf("     note: window is not active, shortcuts may not "
-                  "arrive (another window has focus)\n");
-    QTest::keyClick(&w, key, mods);
-    pump(200);
+    if (QApplication::activeWindow() == &w) {
+      QTest::keyClick(&w, key, mods);
+      pump(200);
+      return;
+    }
+    const QKeySequence sequence(QKeyCombination(mods, key));
+    for (QAction *action : w.findChildren<QAction *>())
+      if (action->shortcut() == sequence && action->isEnabled()) {
+        std::printf("     note: window not focused, triggered %s directly\n",
+                    sequence.toString().toUtf8().constData());
+        action->trigger();
+        pump(200);
+        return;
+      }
+    check(false, "no enabled action for " + sequence.toString());
   }
 
   double voxel(int i, int j, int k) const {
@@ -188,15 +213,21 @@ struct Strata3DUiTest {
     return bestK;
   }
 
-  // Centre (in mm) of the largest tooth-sized 2D cross-section on slice k
-  bool toothOnSlice(int k, double threshold, double &x, double &y) const {
+  struct CrossSection {
+    double x, y; // centre in mm
+    double area; // mm²
+  };
+
+  // Tooth-sized 2D cross-sections (15..120 mm²) of voxels >= threshold on
+  // slice k, largest first
+  std::vector<CrossSection> toothCrossSections(int k, double threshold) const {
     int d[3];
     double o[3], sp[3];
     w.m_volume->GetDimensions(d);
     w.m_volume->GetOrigin(o);
     w.m_volume->GetSpacing(sp);
     std::vector<char> seen(static_cast<size_t>(d[0]) * d[1], 0);
-    int bestN = 0;
+    std::vector<CrossSection> result;
     for (int j0 = 0; j0 < d[1]; ++j0)
       for (int i0 = 0; i0 < d[0]; ++i0) {
         if (seen[j0 * d[0] + i0] || voxel(i0, j0, k) < threshold)
@@ -220,14 +251,25 @@ struct Strata3DUiTest {
             stack.push_back({ni, nj});
           }
         }
-        double area = n * sp[0] * sp[1];
-        if (area >= 15 && area <= 120 && n > bestN) {
-          bestN = n;
-          x = o[0] + si / n * sp[0];
-          y = o[1] + sj / n * sp[1];
-        }
+        const double area = n * sp[0] * sp[1];
+        if (area >= 15 && area <= 120)
+          result.push_back(
+              {o[0] + si / n * sp[0], o[1] + sj / n * sp[1], area});
       }
-    return bestN > 0;
+    std::sort(result.begin(), result.end(),
+              [](const CrossSection &a, const CrossSection &b) {
+                return a.area > b.area;
+              });
+    return result;
+  }
+
+  bool toothOnSlice(int k, double threshold, double &x, double &y) const {
+    std::vector<CrossSection> teeth = toothCrossSections(k, threshold);
+    if (teeth.empty())
+      return false;
+    x = teeth.front().x;
+    y = teeth.front().y;
+    return true;
   }
 
   // ------------------------------------------------------------ checks
@@ -255,12 +297,12 @@ struct Strata3DUiTest {
               QDir(kRealCt).absolutePath(),
           "folder added to recent scans");
 
-    const double bone = w.m_structures[BoneStructure].lower;
-    const double teeth = w.m_structures[TeethStructure].lower;
+    const double bone = w.m_session.lower(BoneStructure);
+    const double teeth = w.m_session.lower(TeethStructure);
     check(bone == 400 && teeth == 1500, "CT presets 400 / 1500 HU");
     const int kTeeth = densestSlice(teeth);
     w.ui->sliceSlider->setValue(kTeeth);
-    check(w.imageViewer->GetSlice() == kTeeth &&
+    check(w.m_sliceView->slice() == kTeeth &&
               w.ui->sliceLabel->text().startsWith(
                   QString("Slice %1 /").arg(kTeeth + 1)),
           "slice slider moves the view and label");
@@ -270,19 +312,19 @@ struct Strata3DUiTest {
           "Ctrl+1 selects Bone");
     w.ui->settingSpin->setValue(450);
     check(w.ui->settingSlider->value() == 450 &&
-              w.m_structures[BoneStructure].lower == 450,
+              w.m_session.lower(BoneStructure) == 450,
           "spin box updates slider and threshold");
     w.ui->settingSlider->setValue(400);
     check(w.ui->settingSpin->value() == 400, "slider updates spin box");
 
     w.ui->createMeshButton->click();
-    check(waitIdle() && w.m_structures[BoneStructure].mesh && w.m_showing3D,
+    check(waitIdle() && w.m_session.mesh(BoneStructure) && w.m_showing3D,
           "bone mesh built and shown in 3D");
     check(w.isWindowModified(), "window marked modified (unexported mesh)");
 
     w.ui->teethButton->click();
     w.ui->createMeshButton->click();
-    check(waitIdle() && w.m_structures[TeethStructure].mesh,
+    check(waitIdle() && w.m_session.mesh(TeethStructure),
           "all-teeth mesh built");
 
     w.ui->toothButton->click();
@@ -294,9 +336,9 @@ struct Strata3DUiTest {
     double tx = 0, ty = 0;
     check(toothOnSlice(kTeeth, teeth, tx, ty), "found a tooth to click");
     clickAt(tx, ty);
-    check(w.m_hasToothSeed, "click on the slice selects the tooth");
+    check(w.m_session.toothSeed().has_value(), "click on the slice selects the tooth");
     keyShortcut(Qt::Key_Return, Qt::ControlModifier);
-    check(waitIdle() && w.m_structures[ToothStructure].mesh,
+    check(waitIdle() && w.m_session.mesh(ToothStructure),
           "Ctrl+Enter builds the single-tooth mesh");
 
     w.ui->nerveButton->click();
@@ -307,20 +349,20 @@ struct Strata3DUiTest {
     w.m_volume->GetOrigin(o);
     for (int q = 0; q < 4; ++q)
       clickAt(o[0] + 100 + 10 * q, o[1] + 150);
-    check(w.m_nervePaths.size() == 1 && w.m_nervePaths[0].size() == 4,
+    check(w.m_session.nerve().paths().size() == 1 && w.m_session.nerve().paths()[0].size() == 4,
           "4 clicks add 4 nerve points");
     w.m_undoPointAction->trigger();
     pressKey("BackSpace");
-    check(w.m_nervePaths[0].size() == 2, "Edit > Undo and Backspace remove points");
+    check(w.m_session.nerve().paths()[0].size() == 2, "Edit > Undo and Backspace remove points");
 
     QStandardItem *boneRow = w.m_meshModel->item(0);
     boneRow->setCheckState(Qt::Unchecked);
-    check(!w.m_structures[BoneStructure].actor->GetVisibility(),
+    check(!w.m_meshView->isMeshVisible(BoneStructure),
           "mesh list checkbox hides a mesh");
     boneRow->setCheckState(Qt::Checked);
     answerNextBox("Cancel");
     w.deleteMesh(ToothStructure);
-    check(w.m_structures[ToothStructure].mesh != nullptr,
+    check(w.m_session.mesh(ToothStructure) != nullptr,
           "Delete mesh > Cancel keeps it");
     answerNextBox("Cancel");
     check(!w.loadDicomFolder(QDir(kPhantom).absolutePath()),
@@ -362,7 +404,7 @@ struct Strata3DUiTest {
                   w.width(), w.height());
     }
     w.resize(1600, 950);
-    w.writeSettings();
+    w.saveWindow();
     check(!QSettings().value("geometry").toByteArray().isEmpty(),
           "window geometry saved");
   }
@@ -393,10 +435,10 @@ struct Strata3DUiTest {
     double tx = 40 + 27 * std::cos(a), ty = 50 - 27 * std::sin(a);
     clickAt(tx, ty);
     w.ui->createMeshButton->click();
-    check(waitIdle() && w.m_structures[ToothStructure].mesh,
+    check(waitIdle() && w.m_session.mesh(ToothStructure),
           "single tooth built");
     double b[6];
-    w.m_structures[ToothStructure].mesh->GetBounds(b);
+    w.m_session.mesh(ToothStructure)->GetBounds(b);
     check(std::hypot((b[0] + b[1]) / 2 - tx, (b[2] + b[3]) / 2 - ty) < 1.0 &&
               b[1] - b[0] < 7,
           "single tooth is exactly the clicked tooth");
@@ -411,13 +453,13 @@ struct Strata3DUiTest {
     for (int deg = 95; deg <= 165; deg += 10)
       clickAt(40 + 27 * std::cos(deg * kPi / 180),
               50 - 27 * std::sin(deg * kPi / 180));
-    check(w.m_nervePaths.size() == 2 && w.m_nervePaths[0].size() == 8 &&
-              w.m_nervePaths[1].size() == 8,
+    check(w.m_session.nerve().paths().size() == 2 && w.m_session.nerve().paths()[0].size() == 8 &&
+              w.m_session.nerve().paths()[1].size() == 8,
           "Enter starts a second canal");
     w.ui->createMeshButton->click();
     pump(300);
-    check(w.m_structures[NerveStructure].mesh != nullptr, "nerve mesh built");
-    w.m_structures[NerveStructure].mesh->GetBounds(b);
+    check(w.m_session.mesh(NerveStructure) != nullptr, "nerve mesh built");
+    w.m_session.mesh(NerveStructure)->GetBounds(b);
     check(std::fabs(b[4] - 9.75) < 0.2 && std::fabs(b[5] - 12.25) < 0.2,
           "nerve tube at canal height with 2.5 mm diameter");
 
@@ -436,11 +478,12 @@ struct Strata3DUiTest {
 
   // ------------------------------------------------------- screenshots
 
+  // README screenshots: real CT only (no synthetic phantom).
   void captureScreenshots() {
     shot("empty-state");
 
     load(kRealCt);
-    const double teeth = w.m_structures[TeethStructure].lower;
+    const double teeth = w.m_session.lower(TeethStructure);
     const int kTeeth = densestSlice(teeth);
     w.ui->sliceSlider->setValue(kTeeth);
     w.ui->boneButton->click();
@@ -459,29 +502,91 @@ struct Strata3DUiTest {
     if (toothOnSlice(kTeeth, teeth, tx, ty))
       clickAt(tx, ty);
     shot("single-tooth-selection");
+    w.ui->createMeshButton->click();
+    waitIdle();
 
-    load(kPhantom);
+    // Nerve: the canal runs inside the mandible body below the teeth. The
+    // demonstration trace takes each tooth of the arch, goes 15 mm down and
+    // moves onto the centre of the bone there, one canal per side from back
+    // to front. These are illustrative points, not a verified canal.
+    std::vector<CrossSection> arch = toothCrossSections(kTeeth, teeth);
+    double cx = 0;
+    for (const CrossSection &c : arch)
+      cx += c.x / arch.size();
+    double sp[3], o[3];
+    w.m_volume->GetSpacing(sp);
+    w.m_volume->GetOrigin(o);
+    const int kNerve =
+        std::max(0, kTeeth - static_cast<int>(std::lround(15.0 / sp[2])));
+    const double bone = w.m_session.lower(BoneStructure);
+    auto boneCentreBelow = [&](double x, double y, double &bx, double &by) {
+      const int r = static_cast<int>(std::ceil(6.0 / sp[0]));
+      const int ci = static_cast<int>(std::lround((x - o[0]) / sp[0]));
+      const int cj = static_cast<int>(std::lround((y - o[1]) / sp[1]));
+      double si = 0, sj = 0;
+      int n = 0;
+      for (int j = cj - r; j <= cj + r; ++j)
+        for (int i = ci - r; i <= ci + r; ++i)
+          if (sq(i - ci) + sq(j - cj) <= r * r && voxel(i, j, kNerve) >= bone) {
+            si += i;
+            sj += j;
+            ++n;
+          }
+      if (n < 5)
+        return false;
+      bx = o[0] + si / n * sp[0];
+      by = o[1] + sj / n * sp[1];
+      return true;
+    };
     w.ui->nerveButton->click();
-    w.ui->sliceSlider->setValue(22);
-    for (int deg = 15; deg <= 165; deg += 25)
-      clickAt(40 + 27 * std::cos(deg * kPi / 180),
-              50 - 27 * std::sin(deg * kPi / 180));
+    w.ui->sliceSlider->setValue(kNerve);
+    for (bool left : {true, false}) {
+      std::vector<CrossSection> side;
+      for (const CrossSection &c : arch)
+        if ((c.x < cx) == left)
+          side.push_back(c);
+      std::sort(side.begin(), side.end(),
+                [](const CrossSection &a, const CrossSection &b) {
+                  return a.y > b.y; // back (large y) to front
+                });
+      for (const CrossSection &c : side) {
+        double bx, by;
+        if (boneCentreBelow(c.x, c.y, bx, by))
+          clickAt(bx, by);
+      }
+      pressKey("Return");
+    }
     shot("nerve-tracing");
     w.ui->createMeshButton->click();
-    for (int id : {BoneStructure, TeethStructure}) {
-      w.selectStructure(id);
-      w.ui->createMeshButton->click();
-      waitIdle();
-    }
-    w.m_meshModel->item(0)->setCheckState(Qt::Unchecked); // hide bone
+    pump(300);
+
+    // Teeth, the selected tooth and the nerve without the bone, framed on the
+    // jaw (as a user would zoom in)
+    w.m_meshModel->item(0)->setCheckState(Qt::Unchecked);
     w.show3DView();
+    double focus[6];
+    vtkPolyData *nerve = w.m_session.mesh(NerveStructure);
+    vtkPolyData *tooth = w.m_session.mesh(ToothStructure);
+    if (nerve && tooth) {
+      double b1[6], b2[6];
+      nerve->GetBounds(b1);
+      tooth->GetBounds(b2);
+      for (int a = 0; a < 3; ++a) {
+        focus[2 * a] = std::min(b1[2 * a], b2[2 * a]) - 12;
+        focus[2 * a + 1] = std::max(b1[2 * a + 1], b2[2 * a + 1]) + 12;
+      }
+      w.m_meshView->m_renderer->ResetCamera(focus);
+      w.m_meshView->render();
+    }
     shot("3d-teeth-and-nerve");
 
     w.m_themeGroup->actions()[1]->trigger();
     w.m_meshModel->item(0)->setCheckState(Qt::Checked);
+    w.ui->boneButton->click();
+    w.ui->sliceSlider->setValue(kTeeth);
     shot("light-theme");
     w.m_themeGroup->actions()[0]->trigger();
-    w.setUnexported(false);
+    discardMeshes();
   }
 };
 

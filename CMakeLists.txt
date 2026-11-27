@@ -1,122 +1,51 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.24) # 3rdparty/DicomToMesh needs 3.24
 
-project(Strata3D)
+project(Strata3D LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#======================= INCLUSION OF Qt =======================#
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
+#============================ DEPENDENCIES ============================#
+# Optional hints for non-standard installations
 if(DEFINED ENV{QTDIR})
     list(APPEND CMAKE_PREFIX_PATH $ENV{QTDIR})
 endif()
-
-find_package(OpenGL)
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Xml Widgets Concurrent)
-
-
-#======================= INCLUSION OF DCMTK ======================#
-find_package(DCMTK REQUIRED)
-include_directories(${DCMTK_INCLUDE_DIRS})
-
-#======================= INCLUSION OF VTK ======================#
 if(DEFINED ENV{VTK_DIR})
     set(VTK_DIR $ENV{VTK_DIR})
 endif()
+
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Widgets Concurrent)
 find_package(VTK REQUIRED)
-if("${VTK_MAJOR_VERSION}" LESS 9)
-    include(${VTK_USE_FILE})
+# Only the synthetic test-data generator (tools/dental_phantom) needs DCMTK
+find_package(DCMTK QUIET)
+
+option(STRATA3D_BUILD_TESTS "Build the unit tests and the end-to-end UI test" OFF)
+option(STRATA3D_BUILD_DICOM2MESH_CLI "Build the upstream dicom2mesh command-line tool" OFF)
+
+#============================== TARGETS ===============================#
+# Third-party code as git submodules (git submodule update --init)
+set(DICOMTOMESH_DIR ${CMAKE_SOURCE_DIR}/3rdparty/DicomToMesh)
+if(NOT EXISTS ${DICOMTOMESH_DIR}/lib/CMakeLists.txt)
+    message(FATAL_ERROR "3rdparty/DicomToMesh is missing: run "
+                        "git submodule update --init --recursive")
+endif()
+# dicom2meshlib: VTK routines for DICOM loading, marching cubes and mesh cleanup
+add_subdirectory(${DICOMTOMESH_DIR}/lib ${CMAKE_BINARY_DIR}/3rdparty/dicom2meshlib)
+if(STRATA3D_BUILD_DICOM2MESH_CLI)
+    add_subdirectory(${DICOMTOMESH_DIR}/dicom2mesh ${CMAKE_BINARY_DIR}/3rdparty/dicom2mesh)
 endif()
 
-# vtkDICOMReader.h (included by MainWindow.h) comes from vtk-dicom, which is
-# either a VTK 9 module or a separate package (Ubuntu: libvtk-dicom-dev).
-find_path(VTK_DICOM_INCLUDE_DIR vtkDICOMReader.h
-    HINTS ${VTK_PREFIX_PATH}/include
-    PATH_SUFFIXES vtk-dicom vtk-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION})
-if(NOT VTK_DICOM_INCLUDE_DIR)
-    message(FATAL_ERROR "vtkDICOMReader.h not found: install libvtk-dicom-dev or build VTK with VTK_MODULE_ENABLE_VTK_DICOM=YES")
-endif()
-# The header registers a static initializer, so the library must be linked too.
-# When VTK itself provides the DICOM module it is already in VTK_LIBRARIES.
-if(NOT TARGET VTK::DICOM)
-    find_library(VTK_DICOM_LIBRARY
-        NAMES vtkDICOM-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION} vtkDICOM
-        HINTS ${VTK_PREFIX_PATH}/lib)
-    if(NOT VTK_DICOM_LIBRARY)
-        message(FATAL_ERROR "vtkDICOM library not found: install libvtk-dicom-dev")
-    endif()
+add_subdirectory(src) # strata3d_core, strata3d_ui, Strata3D
+
+if(STRATA3D_BUILD_TESTS)
+    add_subdirectory(tests)
 endif()
 
-#======================= INCLUSION OF Our Code ======================#
-set(FORMS_DIR "${CMAKE_SOURCE_DIR}/forms")
-set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
-set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
-
-include_directories(${FORMS_DIR})
-include_directories(${INCLUDE_DIR})
-include_directories(${SOURCE_DIR})
-
-file(GLOB_RECURSE SOURCES
-    "${FORMS_DIR}/*.ui"
-    "${INCLUDE_DIR}/*.h"
-    "${SOURCE_DIR}/*.cpp"
-)
-
-# Add the forms directory to the AUTOUIC search paths
-set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_AUTOUIC_SEARCH_PATHS} ${FORMS_DIR})
-
-# Add the executable
-if (WIN32)
-    add_executable(Strata3D WIN32 ${SOURCES})
-elseif(UNIX)
-    add_executable(Strata3D ${SOURCES})
-endif()
-
-# Add the target includes
-target_include_directories(Strata3D PRIVATE ${FORMS_DIR})
-target_include_directories(Strata3D PRIVATE ${INCLUDE_DIR})
-target_include_directories(Strata3D PRIVATE ${SOURCE_DIR})
-target_include_directories(Strata3D PRIVATE ${VTK_DICOM_INCLUDE_DIR})
-
-#===================== LINKING LIBRARIES =======================#
-target_link_libraries( Strata3D Qt6::OpenGL Qt6::OpenGLWidgets)
-target_link_libraries( Strata3D Qt6::Xml)
-target_link_libraries( Strata3D Qt6::Widgets Qt6::Concurrent)
-target_link_libraries( Strata3D ${OPENGL_LIBRARIES})
-target_link_libraries( Strata3D ${VTK_LIBRARIES})
-target_link_libraries( Strata3D ${DCMTK_LIBRARIES})
-if(VTK_DICOM_LIBRARY)
-    target_link_libraries( Strata3D ${VTK_DICOM_LIBRARY})
-endif()
-
-target_link_libraries( Strata3D dicom2meshlib)
-
-if(NOT "${VTK_MAJOR_VERSION}" LESS 9)
-    vtk_module_autoinit(TARGETS Strata3D MODULES ${VTK_LIBRARIES})
-endif()
-
-#===================== UI TEST =======================#
-# End-to-end test of the main window on the example scans (needs a display):
-#   cmake -S . -B build -DSTRATA3D_BUILD_UI_TESTS=ON && ./build/strata3d_ui_test
-option(STRATA3D_BUILD_UI_TESTS "Build the end-to-end UI test" OFF)
-if(STRATA3D_BUILD_UI_TESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    set(UI_TEST_SOURCES ${SOURCES})
-    list(FILTER UI_TEST_SOURCES EXCLUDE REGEX "/src/main\\.cpp$")
-    add_executable(strata3d_ui_test tests/ui/ui_test.cpp ${UI_TEST_SOURCES})
-    target_include_directories(strata3d_ui_test PRIVATE ${FORMS_DIR} ${INCLUDE_DIR} ${SOURCE_DIR} ${VTK_DICOM_INCLUDE_DIR})
-    get_target_property(STRATA3D_LIBS Strata3D LINK_LIBRARIES)
-    target_link_libraries(strata3d_ui_test ${STRATA3D_LIBS} Qt6::Test)
-    vtk_module_autoinit(TARGETS strata3d_ui_test MODULES ${VTK_LIBRARIES})
-endif()
-
-#===================== TOOLS =======================#
 # Synthetic dental DICOM series for testing: dental_phantom <out_dir> [--cbct]
-add_executable(dental_phantom tools/dental_phantom.cpp)
-target_link_libraries(dental_phantom ${DCMTK_LIBRARIES})
-
-add_subdirectory(lib)
-add_subdirectory(dicom2mesh)
-#add_subdirectory(gui)
+if(DCMTK_FOUND)
+    add_executable(dental_phantom tools/dental_phantom.cpp)
+    target_include_directories(dental_phantom PRIVATE ${DCMTK_INCLUDE_DIRS})
+    target_link_libraries(dental_phantom PRIVATE ${DCMTK_LIBRARIES})
+else()
+    message(STATUS "DCMTK not found: tools/dental_phantom is not built")
+endif()

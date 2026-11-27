@@ -1,3 +1,6 @@
+# 
+Claude.md
+
 # Ignore build directory
 build/
 build/ .
@@ -11,7 +14,6 @@ build .
 *.lo
 *.o
 *.obj
-!lib/test/data/*.obj
 
 # Precompiled Headers
 *.gch
@@ -36,3 +38,7 @@ build .
 *.exe
 *.out
 *.app
+
+# Local assistant files (not part of the repository)
+CLAUDE.md
+.claude/
