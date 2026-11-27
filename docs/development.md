@@ -99,7 +99,9 @@ The DicomToMesh submodule has its own tests (`-DTESTDICOM2MESHLIB=ON`, run from
 
 ### Screenshots
 
-The README images are captured from the running application, always on the real CT:
+The README images are captured from the running application, always on real scans:
+the head-only CT (`example/downloads/cptac_aml_head_ct`) for bone, the head and neck CT
+for teeth, single tooth and nerve:
 
 ```bash
 ./build/strata3d_ui_test --screenshots docs/assets/screenshots
@@ -107,7 +109,10 @@ The README images are captured from the running application, always on the real 
 
 ### Test data
 
-- `example/downloads/tcga_thca_headneck_ct/`: real head and neck CT (TCIA, CC BY 3.0).
+- `example/downloads/tcga_thca_headneck_ct/`: real head and neck CT with teeth (TCIA,
+  CC BY 3.0).
+- `example/downloads/cptac_aml_head_ct/`: real head-only CT without table, no teeth (TCIA,
+  CC BY 4.0).
 - `example/dental_ct/`, `example/dental_cbct/`: synthetic dental phantom
   (`tools/dental_phantom.cpp`; geometry documented in `example/README.md`). Used by
   tests with known geometry, not for screenshots.

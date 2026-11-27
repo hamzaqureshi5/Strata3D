@@ -61,6 +61,8 @@ namespace {
 
 const char *kRealCt = "example/downloads/tcga_thca_headneck_ct";
 const char *kPhantom = "example/dental_ct";
+// head only (no table), no teeth: used for the bone screenshots
+const char *kHeadCt = "example/downloads/cptac_aml_head_ct";
 const double kPi = 3.14159265358979323846;
 
 int g_failures = 0;
@@ -478,23 +480,24 @@ struct Strata3DUiTest {
 
   // ------------------------------------------------------- screenshots
 
-  // README screenshots: real CT only (no synthetic phantom).
+  // README screenshots: real CT only (no synthetic phantom), slice views only.
   void captureScreenshots() {
     shot("empty-state");
 
+    // Bone on the head-only CT (no table or shoulders)
+    load(kHeadCt);
+    w.ui->boneButton->click();
+    shot("slices-bone-threshold");
+
+    // Teeth, single tooth and nerve need a scan with teeth: head & neck CT
     load(kRealCt);
     const double teeth = w.m_session.lower(TeethStructure);
     const int kTeeth = densestSlice(teeth);
     w.ui->sliceSlider->setValue(kTeeth);
-    w.ui->boneButton->click();
-    shot("slices-bone-threshold");
-    w.ui->createMeshButton->click();
-    waitIdle();
     w.ui->teethButton->click();
     shot("slices-teeth-threshold");
     w.ui->createMeshButton->click();
     waitIdle();
-    shot("3d-bone-and-teeth");
 
     w.ui->toothButton->click();
     w.ui->sliceSlider->setValue(kTeeth);
@@ -557,35 +560,6 @@ struct Strata3DUiTest {
       pressKey("Return");
     }
     shot("nerve-tracing");
-    w.ui->createMeshButton->click();
-    pump(300);
-
-    // Teeth, the selected tooth and the nerve without the bone, framed on the
-    // jaw (as a user would zoom in)
-    w.m_meshModel->item(0)->setCheckState(Qt::Unchecked);
-    w.show3DView();
-    double focus[6];
-    vtkPolyData *nerve = w.m_session.mesh(NerveStructure);
-    vtkPolyData *tooth = w.m_session.mesh(ToothStructure);
-    if (nerve && tooth) {
-      double b1[6], b2[6];
-      nerve->GetBounds(b1);
-      tooth->GetBounds(b2);
-      for (int a = 0; a < 3; ++a) {
-        focus[2 * a] = std::min(b1[2 * a], b2[2 * a]) - 12;
-        focus[2 * a + 1] = std::max(b1[2 * a + 1], b2[2 * a + 1]) + 12;
-      }
-      w.m_meshView->m_renderer->ResetCamera(focus);
-      w.m_meshView->render();
-    }
-    shot("3d-teeth-and-nerve");
-
-    w.m_themeGroup->actions()[1]->trigger();
-    w.m_meshModel->item(0)->setCheckState(Qt::Checked);
-    w.ui->boneButton->click();
-    w.ui->sliceSlider->setValue(kTeeth);
-    shot("light-theme");
-    w.m_themeGroup->actions()[0]->trigger();
     discardMeshes();
   }
 };
