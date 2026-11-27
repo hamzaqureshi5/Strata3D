@@ -97,6 +97,21 @@ if(NOT "${VTK_MAJOR_VERSION}" LESS 9)
     vtk_module_autoinit(TARGETS Strata3D MODULES ${VTK_LIBRARIES})
 endif()
 
+#===================== UI TEST =======================#
+# End-to-end test of the main window on the example scans (needs a display):
+#   cmake -S . -B build -DSTRATA3D_BUILD_UI_TESTS=ON && ./build/strata3d_ui_test
+option(STRATA3D_BUILD_UI_TESTS "Build the end-to-end UI test" OFF)
+if(STRATA3D_BUILD_UI_TESTS)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    set(UI_TEST_SOURCES ${SOURCES})
+    list(FILTER UI_TEST_SOURCES EXCLUDE REGEX "/src/main\\.cpp$")
+    add_executable(strata3d_ui_test tests/ui/ui_test.cpp ${UI_TEST_SOURCES})
+    target_include_directories(strata3d_ui_test PRIVATE ${FORMS_DIR} ${INCLUDE_DIR} ${SOURCE_DIR} ${VTK_DICOM_INCLUDE_DIR})
+    get_target_property(STRATA3D_LIBS Strata3D LINK_LIBRARIES)
+    target_link_libraries(strata3d_ui_test ${STRATA3D_LIBS} Qt6::Test)
+    vtk_module_autoinit(TARGETS strata3d_ui_test MODULES ${VTK_LIBRARIES})
+endif()
+
 #===================== TOOLS =======================#
 # Synthetic dental DICOM series for testing: dental_phantom <out_dir> [--cbct]
 add_executable(dental_phantom tools/dental_phantom.cpp)

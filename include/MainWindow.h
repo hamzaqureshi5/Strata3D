@@ -60,6 +60,7 @@ struct DicomLoadResult {
 //   Nerve:            click points along the canal; tube of the set diameter
 class MainWindow : public QMainWindow, public DicomConverter_Listener {
   Q_OBJECT
+  friend struct Strata3DUiTest; // tests/ui/ui_test.cpp drives the private UI
 
 public:
   explicit MainWindow(QWidget *parent = nullptr);
