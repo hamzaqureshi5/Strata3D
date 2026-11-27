@@ -5,7 +5,8 @@ app with it: `./build/Strata3D example/<folder>`.
 
 | Folder | What it is | Size |
 |---|---|---|
-| `downloads/tcga_thca_headneck_ct/` | **Real** head & neck CT (Siemens, 512 x 512 x 148, 0.98 x 0.98 x 1.5 mm, HU). Teeth around slice 81. | 75 MB |
+| `downloads/tcga_thca_headneck_ct/` | **Real** head & neck CT (Siemens, 512 x 512 x 148, 0.98 x 0.98 x 1.5 mm, HU). Teeth around slice 81. Includes the scanner table and shoulders. | 75 MB |
+| `downloads/cptac_aml_head_ct/` | **Real** head CT, head only (Siemens, 512 x 512 x 27, 0.5 x 0.5 x 5 mm, HU, bone kernel). From the skull base and eyes to the top of the skull; no teeth. No table; a thin head cradle is visible but stays below the bone threshold. | 14 MB |
 | `dental_ct/` | Synthetic dental phantom, CT-like (HU via RescaleIntercept -1024). | 5 MB |
 | `dental_cbct/` | Same phantom, CBCT-like (uncalibrated gray values). | 5 MB |
 | `synthetic_ct/` | Simple synthetic CT: torus + sphere. | 3 MB |
@@ -24,7 +25,30 @@ mandible (900 HU, z 5-25), 12 teeth on the arch (dentin 1700 HU, enamel cap 2500
 z 14-36) and a 2.4 mm nerve canal (30 HU) at z = 11 mm along the arch (radius 27 mm).
 Useful for checking results against known geometry.
 
-## Real CT: source, license and citation
+## Real head CT (head only): source, license and citation
+
+- Collection: **CPTAC-AML**, The Cancer Imaging Archive (TCIA). Patient `C3L-05387`, study
+  "CT HEAD WO CONTRAST", series "Head WO Bone 5mm",
+  SeriesInstanceUID `1.3.6.1.4.1.14519.5.2.1.1427.3349.320650474254771490356412766914`.
+- License: **Creative Commons Attribution 4.0** (https://creativecommons.org/licenses/by/4.0/),
+  commercial use allowed with attribution.
+- Cite the dataset: https://doi.org/10.7937/TCIA.2019.B6FOE619 and TCIA (Clark et al.,
+  2013, see below).
+- The same TCIA data use conditions apply (no attempt to identify the participant, no
+  facial images or skin-surface reconstructions).
+
+To download it again (no account needed):
+
+```bash
+SERIES=1.3.6.1.4.1.14519.5.2.1.1427.3349.320650474254771490356412766914
+API=https://services.cancerimagingarchive.net/nbia-api/services/v1
+mkdir -p example/downloads/cptac_aml_head_ct && cd example/downloads/cptac_aml_head_ct
+curl -s "$API/getSOPInstanceUIDs?SeriesInstanceUID=$SERIES" | python3 -c \
+  "import json,sys; print('\n'.join(x['SOPInstanceUID'] for x in json.load(sys.stdin)))" |
+  xargs -P 8 -I{} curl -s -o {}.dcm "$API/getSingleImage?SeriesInstanceUID=$SERIES&SOPInstanceUID={}"
+```
+
+## Real head & neck CT: source, license and citation
 
 - Collection: **TCGA-THCA** (The Cancer Genome Atlas Thyroid Cancer), The Cancer Imaging
   Archive (TCIA). Patient `TCGA-DE-A4MA`, series "CT HeadNeck 3.0 B31s",
