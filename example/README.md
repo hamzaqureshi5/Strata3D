@@ -9,7 +9,6 @@ app with it: `./build/Strata3D example/<folder>`.
 | `downloads/cptac_aml_head_ct/` | **Real** head CT, head only (Siemens, 512 x 512 x 27, 0.5 x 0.5 x 5 mm, HU, bone kernel). From the skull base and eyes to the top of the skull; no teeth. No table; a thin head cradle is visible but stays below the bone threshold. | 14 MB |
 | `dental_ct/` | Synthetic dental phantom, CT-like (HU via RescaleIntercept -1024). | 5 MB |
 | `dental_cbct/` | Same phantom, CBCT-like (uncalibrated gray values). | 5 MB |
-| `synthetic_ct/` | Simple synthetic CT: torus + sphere. | 3 MB |
 
 ## Synthetic phantoms
 
